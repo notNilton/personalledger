@@ -56,6 +56,7 @@ model Account {
   type            AccountType
   color           String?     @db.VarChar(7)   // Cor customizável no app HEX
   icon            String?     // Ícone selecionado
+  currencyCode    String      @default("BRL") @db.VarChar(3) // Ex: BRL, USD, EUR
 
   // Para contas normais
   balance         Decimal     @default(0.00) @db.Decimal(12, 2)
@@ -75,6 +76,51 @@ model Account {
   updatedAt       DateTime    @updatedAt
 
   transactions    Transaction[]
+  balanceHistory  BalanceHistory[]
+  statements      CreditCardStatement[]
+}
+
+model CreditCardStatement {
+  id              String      @id @default(uuid())
+  accountId       String
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  month           Int         // 1-12
+  year            Int         // 2024
+
+  status          StatementStatus @default(OPEN)
+  totalAmount     Decimal     @default(0.00) @db.Decimal(12, 2)
+  paidAmount      Decimal     @default(0.00) @db.Decimal(12, 2)
+
+  dueDate         DateTime    @db.Date
+  closingDate     DateTime    @db.Date
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  transactions    Transaction[]
+
+  @@unique([accountId, month, year])
+}
+
+enum StatementStatus {
+  OPEN
+  CLOSED
+  PAID
+}
+
+model BalanceHistory {
+  id              String      @id @default(uuid())
+  accountId       String
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  date            DateTime    @db.Date // Snapshot de fim de dia (ex: 2026-03-02)
+  balance         Decimal     @db.Decimal(12, 2)
+
+  createdAt       DateTime    @default(now())
+
+  // Garante que só há um snapshot de saldo por dia por conta
+  @@unique([accountId, date])
 }
 ```
 
@@ -157,14 +203,24 @@ model Transaction {
 
   // Para anexos (S3 ou similar)
   attachmentUrl   String?
+  currencyCode    String            @default("BRL") @db.VarChar(3)
+
+  // Vinculação com Fatura de Cartão
+  statementId     String?
+  statement       CreditCardStatement? @relation(fields: [statementId], references: [id], onDelete: SetNull)
+
+  // Vinculação com Metas/Goals
+  goalId          String?
+  goal            Goal?             @relation(fields: [goalId], references: [id], onDelete: SetNull)
 
   // Para parcelamentos e recorrências
   installmentId   String?           // Agrupa transações que são parcelas de uma mesma compra (1/12, 2/12)
   installmentNum  Int?
   totalInstallments Int?
 
-  // Para Transferências
-  transferId      String?           // Vincula as 2 pontas (saída de uma conta, entrada em outra)
+  // Para Transferências (Ponte com a tabela Transfer)
+  transferOut       Transfer?         @relation("TransferSource")
+  transferIn        Transfer?         @relation("TransferDestination")
 
   // Controle de Soft Delete
   isActive        Boolean           @default(true)
@@ -175,6 +231,20 @@ model Transaction {
 
   @@index([date])
   @@index([userId, date])
+}
+
+model Transfer {
+  id                      String      @id @default(uuid())
+
+  // Transação de Saída (Origem)
+  sourceTransactionId     String      @unique
+  sourceTransaction       Transaction @relation("TransferSource", fields: [sourceTransactionId], references: [id], onDelete: Cascade)
+
+  // Transação de Entrada (Destino)
+  destinationTransactionId String     @unique
+  destinationTransaction  Transaction @relation("TransferDestination", fields: [destinationTransactionId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime    @default(now())
 }
 ```
 
@@ -227,6 +297,8 @@ model Goal {
   color           String?    @db.VarChar(7)
   icon            String?
 
+  transactions    Transaction[] // Transações que alimentaram ou sacaram a meta
+
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -268,3 +340,6 @@ model AuditLog {
 1. O Prisma usará bastante o `groupBy` e `sum` na tabela `Transaction` para desenhar os fluxos de caixa em tempo real.
 2. Como temos um `@@index([userId, date])` na transação, filtrar o saldo do mês de Janeiro/2026 será ultra rápido.
 3. Não há amarração pesada de Autenticação na DB justamente porque o `workosId` no modelo `User` resolverá toda essa ponte via webhooks. Quando o WorkOS cria o User, o sistema escuta o Webhook deles e insere nosso registro do `User`.
+4. **Soft Deletes Automáticos:** Como há o uso extensivo de `isActive` vs `deletedAt`, a arquitetura da Backend exigirá a injeção um [Prisma Middleware (ou Extension)](https://www.prisma.io/docs/concepts/components/prisma-client/middleware) global para forçar a query `where: { isActive: true }`, evitando erros humanos que retornem transações "excluídas".
+5. **Soft Delete vs Índices Únicos:** O Prisma não lida nativamente com soft deletes em constraints `@@unique` (ex: a categoria única). Precisaremos criar um **Partial Index** direto no PostgreSQL (`CREATE UNIQUE INDEX... WHERE "isActive" = true`) por meio de uma _migration raw_, para permitir recriar categorias deletadas sem estourar o banco.
+6. **Lógica de Saldo:** A tabela `BalanceHistory` garante os _snapshots_ para o frontend não engasgar. Porém, a tabela `Account.balance` deve ser tratada como um _cache_ atualizado rigorosamente via _Backend Services_ ou Database Triggers sempre que uma transação no passado for criada/editada/deletada para manter a consistência real.

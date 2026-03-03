@@ -16,7 +16,7 @@ Este documento detalha as principais funcionalidades sugeridas para a plataforma
 ### 1.2. Motor de Lançamentos e Transações
 
 - **Registro de Fricção Zero (Quick Add):** Inserção de valor, conta e categoria com apenas 3 cliques, ideal para a versão mobile.
-- **Categorização Inteligente com IA:** Sugestão automática do nome do estabelecimento e da categoria com base no texto digitado ou arquivos OFX importados.
+- **Categorização Automática:** Algoritmo inicial focado em regras (Regex/String Matching) para auto-categorizar nomes de estabelecimentos. (Pode evoluir para IA preditiva num Momento/Fase 2).
 - **Micro-classificação (Tags e Projetos):** Permite cruzar dados (ex: categoria "Transporte", mas com tag `#viagem_disney` para isolar gastos de um evento específico).
 - **Recorrência Avançada e Parcelamentos:**
   - Assinaturas fixas (Netflix, Spotify) que se auto-lançam no dia correto.
@@ -37,9 +37,9 @@ Este documento detalha as principais funcionalidades sugeridas para a plataforma
 
 ### 1.5. Ecossistema Integrado e Importações
 
+- **Prioridade 1: Importação de OFX/CSV:** Foco total em permitir que o usuário faça o upload massivo de extratos bancários como principal motor automatizado, evitando altos custos operacionais no MVP.
 - **Leitura de Código de Barras e Pix Copia e Cola:** No aplicativo Mobile, captura de dados direto da câmera ou clipboard para criar contas a pagar instantaneamente.
-- **Importação Simplificada Massiva:** Upload via Web de arquivos OFX, CSV customizáveis e até PDFs de faturas de banco, com um motor de IA de conciliação bancária (matching).
-- **Open Finance (Plano Futuro Premium):** Conexão _read-only_ constante com as APIs bancárias (via Belvo ou Pluggy) puxando todas as transações de forma 100% automatizada.
+- **Open Finance (Fase 2 / Postergável):** Conexão _read-only_ constante com as APIs bancárias (via Belvo ou Pluggy). Devido ao custo por usuário ativo, será postergado ou atrelado estritamente a um plano monetizado "Premium".
 
 ### 1.6. Calendário Financeiro e Centro de Controle
 
@@ -91,7 +91,7 @@ Este documento detalha as principais funcionalidades sugeridas para a plataforma
 ## 3. Divisão de Frontend Web vs. Mobile App
 
 - **Frontend Web (React):** Focado em análises mais profundas, visualização rica em gráficos, configurações detalhadas e importação de arquivos pesados (CSV/OFX).
-- **Mobile (React Native):** Focado no registro rápido e _on-the-go_ de despesas (na fila do mercado, no caixa do restaurante), leitura de código de barras para boletos e recebimento de notificações push.
+- **Mobile (React Native):** Focado no registro rápido e _on-the-go_ de despesas (na fila do mercado, no caixa do restaurante), leitura de código de barras para boletos e recebimento de notificações push. **Arquitetura Offline-First:** É crítico utilizar bancos de dados locais (SQLite ou WatermelonDB) para garantir que o usuário cadastre lançamentos sem internet, criando uma fila de sincronização em background quando a conexão retornar.
 
 ---
 
@@ -135,3 +135,21 @@ Este documento detalha as principais funcionalidades sugeridas para a plataforma
   - **GitHub Actions:** Pipeline automatizado rodando Lint, Prettier e Testes em cada Pull Request para blindar a `main`.
   - **Deploy Contínuo:** Merge na branch `main` dispara o deploy no Render (Backend) e Vercel (Frontend).
   - **Deploy Mobile:** Integração com EAS (Expo Application Services) / Fastlane para builds automáticos e deploy nas lojas (App Store / Google Play).
+- **Gateways de Pagamento (Planos Premium):**
+  - **Web:** Integração com **Stripe** para checkout web flexível.
+  - **Mobile:** Integração com **RevenueCat** para uniformizar faturamentos In-App da App Store (Apple) e Google Play Billing.
+
+---
+
+## 7. Tabela de Priorização Sugerida (MVP)
+
+Com base nas análises de viabilidade tecnológica e de negócios, a estrutura do escopo inicial se focará na seguinte priorização:
+
+| Funcionalidade                      | Impacto | Complexidade | Recomendação               |
+| ----------------------------------- | ------- | ------------ | -------------------------- |
+| **Quick Add (Mobile)**              | Alto    | Baixa        | **Prioridade 1**           |
+| **Importação de OFX/CSV**           | Alto    | Média        | **Prioridade 1**           |
+| **Safe-to-Spend**                   | Alto    | Baixa        | **Diferencial de Mercado** |
+| **Gamificação/Badges**              | Baixo   | Média        | **Postergável**            |
+| **Open Finance API**                | Médio   | Alta         | **Postergável (Custo)**    |
+| **Reconciliação e Saldo Histórico** | Alto    | Alta         | **Prioridade 1**           |
