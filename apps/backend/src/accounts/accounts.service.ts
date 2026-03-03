@@ -1,33 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { Account, AccountType } from '@project-budget/database';
-
-export interface CreateAccountDto {
-  name: string;
-  type: AccountType;
-  color?: string;
-  icon?: string;
-  currencyCode?: string;
-  balance?: number;
-  creditLimit?: number;
-  closingDay?: number;
-  dueDay?: number;
-  includeInTotal?: boolean;
-}
-
-export interface UpdateAccountDto {
-  name?: string;
-  type?: AccountType;
-  color?: string;
-  icon?: string;
-  currencyCode?: string;
-  balance?: number;
-  creditLimit?: number;
-  closingDay?: number;
-  dueDay?: number;
-  includeInTotal?: boolean;
-  isActive?: boolean;
-}
+import { Account } from '@project-budget/database';
+import { CreateAccountDto } from './dto/create-account.dto';
+import { UpdateAccountDto } from './dto/update-account.dto';
+import { Prisma } from '@project-budget/database';
 
 @Injectable()
 export class AccountsService {
@@ -57,8 +33,11 @@ export class AccountsService {
         color: dto.color,
         icon: dto.icon,
         currencyCode: dto.currencyCode || 'BRL',
-        balance: (dto.balance || 0) as unknown as never,
-        creditLimit: dto.creditLimit as unknown as never,
+        balance: new Prisma.Decimal(dto.balance ?? 0),
+        creditLimit:
+          dto.creditLimit !== undefined
+            ? new Prisma.Decimal(dto.creditLimit)
+            : null,
         closingDay: dto.closingDay,
         dueDay: dto.dueDay,
         includeInTotal: dto.includeInTotal ?? true,
@@ -72,18 +51,27 @@ export class AccountsService {
     dto: UpdateAccountDto,
   ): Promise<Account> {
     await this.findOne(id, userId);
+
     return this.db.account.update({
       where: { id },
       data: {
-        ...dto,
+        name: dto.name,
+        type: dto.type,
+        color: dto.color,
+        icon: dto.icon,
+        currencyCode: dto.currencyCode,
         balance:
           dto.balance !== undefined
-            ? (dto.balance as unknown as never)
+            ? new Prisma.Decimal(dto.balance)
             : undefined,
         creditLimit:
           dto.creditLimit !== undefined
-            ? (dto.creditLimit as unknown as never)
+            ? new Prisma.Decimal(dto.creditLimit)
             : undefined,
+        closingDay: dto.closingDay,
+        dueDay: dto.dueDay,
+        includeInTotal: dto.includeInTotal,
+        isActive: dto.isActive,
       },
     });
   }
