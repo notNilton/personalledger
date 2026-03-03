@@ -1,22 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { Category, TransactionType } from '@project-budget/database';
+import { Category } from '@project-budget/database';
 
-export interface CreateCategoryDto {
-  name: string;
-  type: TransactionType;
-  icon?: string;
-  color?: string;
-  parentId?: string;
-}
-
-export interface UpdateCategoryDto {
-  name?: string;
-  type?: TransactionType;
-  icon?: string;
-  color?: string;
-  parentId?: string;
-}
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {

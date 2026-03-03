@@ -8,11 +8,9 @@ import {
   Patch,
   Query,
 } from '@nestjs/common';
-import {
-  CategoriesService,
-  CreateCategoryDto,
-  UpdateCategoryDto,
-} from './categories.service';
+import { CategoriesService } from './categories.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from '@project-budget/database';
 
 @Controller('categories')
