@@ -21,11 +21,11 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 
 ## 0.1. Stack Tecnológica Base
 
-- **Backend:** Nest.js + Prisma ORM + PostgreSQL (tipagem robusta, queries escaláveis)
+- **Backend:** Nest.js
 - **Frontend Web:** Vite + React (dashboards ricos)
 - **Mobile:** React Native (lançamentos rápidos + push notifications)
 - **Backoffice:** Vite + React (painel administrativo isolado)
-- **Banco de Dados:** PostgreSQL com arquitetura de **Partidas Dobradas (Double-Entry Bookkeeping)** desde o dia 1:
+- **Banco de Dados:** Prisma ORM + PostgreSQL (tipagem robusta, queries escaláveis) PostgreSQL com arquitetura de **Partidas Dobradas (Double-Entry Bookkeeping)** desde o dia 1:
   - Todo débito possui crédito correspondente
   - Garantia de integridade: `Ativos = Passivos + Patrimônio`
   - Contas fantasmas para rastreio de despesas sem "vazamento" de saldo
