@@ -8,11 +8,9 @@ import {
   Patch,
   Query,
 } from '@nestjs/common';
-import {
-  BudgetsService,
-  CreateBudgetDto,
-  UpdateBudgetDto,
-} from './budgets.service';
+import { BudgetsService } from './budgets.service';
+import { CreateBudgetDto } from './dto/create-budget.dto';
+import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { Budget } from '@project-budget/database';
 
 @Controller('budgets')

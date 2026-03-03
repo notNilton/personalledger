@@ -1,19 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { Budget } from '@project-budget/database';
-
-export interface CreateBudgetDto {
-  categoryId?: string;
-  amountLimit: number;
-  month: number;
-  year: number;
-  rolloverAmount?: number;
-}
-
-export interface UpdateBudgetDto {
-  amountLimit?: number;
-  rolloverAmount?: number;
-}
+import { Budget, Prisma } from '@project-budget/database';
+import { CreateBudgetDto } from './dto/create-budget.dto';
+import { UpdateBudgetDto } from './dto/update-budget.dto';
 
 @Injectable()
 export class BudgetsService {
@@ -53,14 +42,14 @@ export class BudgetsService {
       create: {
         userId,
         categoryId: dto.categoryId,
-        amountLimit: dto.amountLimit as unknown as never,
+        amountLimit: new Prisma.Decimal(dto.amountLimit),
         month: dto.month,
         year: dto.year,
-        rolloverAmount: (dto.rolloverAmount || 0) as unknown as never,
+        rolloverAmount: new Prisma.Decimal(dto.rolloverAmount ?? 0),
       },
       update: {
-        amountLimit: dto.amountLimit as unknown as never,
-        rolloverAmount: (dto.rolloverAmount || 0) as unknown as never,
+        amountLimit: new Prisma.Decimal(dto.amountLimit),
+        rolloverAmount: new Prisma.Decimal(dto.rolloverAmount ?? 0),
       },
     });
   }
@@ -76,11 +65,11 @@ export class BudgetsService {
       data: {
         amountLimit:
           dto.amountLimit !== undefined
-            ? (dto.amountLimit as unknown as never)
+            ? new Prisma.Decimal(dto.amountLimit)
             : undefined,
         rolloverAmount:
           dto.rolloverAmount !== undefined
-            ? (dto.rolloverAmount as unknown as never)
+            ? new Prisma.Decimal(dto.rolloverAmount)
             : undefined,
       },
     });
