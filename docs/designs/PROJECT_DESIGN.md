@@ -1,206 +1,500 @@
 # Plataforma de Gerenciamento de Orçamento Pessoal
 
-Este documento detalha as principais funcionalidades sugeridas para a plataforma de gerenciamento financeiro pessoal, dividida pelos escopos da arquitetura (Frontend Web, Mobile, Backend e Backoffice).
+## Reorganização por Fases de Implementação
 
-## 1. Funcionalidades Core Expandidas (Para o Usuário Final)
+# 🗓️ Visão Geral das Fases
 
-### 1.1. Gestão Omnichannel de Contas e Cartões
-
-- **Múltiplos Tipos de Carteiras:** Conta Corrente, Conta Salário, Poupança, Carteiras Digitais (Mercado Pago, PicPay) e Cofres Físicos (dinheiro em espécie).
-- **Cartões de Crédito Inteligentes:**
-  - Gestão de múltiplos cartões (bandeiras, limites totais e disponíveis).
-  - Cálculo automático da melhor data de compra (baseado no dia de fechamento vs vencimento).
-  - Previsão de faturas futuras (projetando compras parceladas).
-- **Visão Holding/Consolidada:** Balanço patrimonial automático subtraindo dívidas (faturas abertas) dos ativos (saldos nas contas).
-
-### 1.2. Motor de Lançamentos e Transações
-
-- **Registro de Fricção Zero (Quick Add):** Inserção de valor, conta e categoria com apenas 3 cliques, ideal para a versão mobile.
-- **Categorização Automática:** Algoritmo inicial focado em regras (Regex/String Matching) para auto-categorizar nomes de estabelecimentos. (Pode evoluir para IA preditiva num Momento/Fase 2).
-- **Micro-classificação (Tags e Projetos):** Permite cruzar dados (ex: categoria "Transporte", mas com tag `#viagem_disney` para isolar gastos de um evento específico).
-- **Recorrência Avançada e Parcelamentos:**
-  - Assinaturas fixas (Netflix, Spotify) que se auto-lançam no dia correto.
-  - Parcelamentos no cartão de crédito dividindo e alocando corretamente para os meses futuros da fatura correspondente.
-- **Anexos em Nuvem:** Foto de cupom fiscal, comprovante de pix ou PDF de serviço prestado associado a cada transação financeira para fins de garantia ou IR.
-
-### 1.3. Orçamentos Estratégicos (Smart Budgeting)
-
-- **Limites Dinâmicos e Elásticos (Envelopamentos):** Sistema inspirado no "Envelope Budgeting" (Zero-based budget). Definição de metas como "R$ 1.200 para Supermercado". Se gastar menos no mês, o saldo pode rolar para o mês seguinte ou ser realocado para outra categoria estourada.
-- **Termômetro de Gastos e Alertas (Webhooks/Push):** Barra de progresso visual em tempo real comparando o % do mês já transcorrido com o % do orçamento já gasto (ex: "Você gastou 80% do orçamento de Lazer, mas estamos apenas no dia 10").
-- **Planejamento de Metas (Goals):** Criação de caixinhas para objetivos de curto/médio prazo (ex: "Trocar de Carro: R$ 50.000"). A cada depósito, o app atualiza o prazo estimado para conclusão.
-
-### 1.4. Central de Dashboards e Analytics
-
-- **Fluxo de Caixa Detalhado:** Gráfico em cascata (Waterfall) ou Sankey Diagam para mostrar exatamente o caminho que o dinheiro fez desde o recebimento (salário) até onde ele escoou (moradia, alimentação, impostos).
-- **Análise Month-over-Month (MoM):** Comparativos visuais mostrando: "Neste mês você gastou 15% a mais em Delivery comparado ao mês anterior".
-- **Evolução de Patrimônio Líquido (Net Worth):** Gráfico histórico da riqueza do usuário.
-
-### 1.5. Ecossistema Integrado e Importações
-
-- **Prioridade 1: Importação de OFX/CSV:** Foco total em permitir que o usuário faça o upload massivo de extratos bancários como principal motor automatizado, evitando altos custos operacionais no MVP.
-  - _Arquitetura Assíncrona (RabbitMQ/BullMQ):_ Como a importação de meses de transações pode ser pesada, o upload do arquivo disparará um evento para uma fila (Mensageria), onde "Workers" farão o processamento, categorização e conciliação em background, notificando o aplicativo quando concluído via WebSockets/Server-Sent Events (SSE).
-- **Leitura de Código de Barras e Pix Copia e Cola:** No aplicativo Mobile, captura de dados direto da câmera ou clipboard para criar contas a pagar instantaneamente.
-- **Open Finance (Fase 2 / Postergável):** Conexão _read-only_ constante com as APIs bancárias (via Belvo ou Pluggy). Devido ao custo por usuário ativo, será postergado ou atrelado estritamente a um plano monetizado "Premium".
-
-### 1.6. Calendário Financeiro e Centro de Controle
-
-- **Visão de Calendário UI:** Um calendário real mostrando os dias do mês com marcações visuais de quando salários caem e quando cada boleto/fatura vence.
-- **Notificações Pró-ativas:** Push notification com o aviso matinal: "Bom dia! Você tem 2 contas vencendo hoje no valor de R$ 150,00".
-- **Insights de Dinheiro Livre (Safe-to-Spend):** Um cálculo que subtrai as despesas fixas iminentes do saldo atual da conta e diz ao usuário quanto ele _realmente_ tem livre para gastar hoje sem comprometer os pagamentos daquele mês.
-
-### 1.7. Segurança e Privacidade
-
-- **Modo Oculto (Privacy Mode):** Botões rápidos (um "olhinho") para borrar/ocultar todos os numerais de dinheiro na tela quando o usuário estiver em público.
-- **Bloqueio Biométrico:** No Mobile, exigir FaceID/TouchID para abrir o aplicativo.
-- **Sessão Segura:** Encerramento automático de sessão após tempo de inatividade no Web.
-
-### 1.8. Colaboração Familiar
-
-- **Contas Compartilhadas (Joint Accounts):** Capacidade de convidar um cônjuge ou familiar (outro usuário WorkOS) para visualizar e editar as mesmas transações de uma carteira específica.
-- **Divisão de Despesas (Split):** Lançar uma conta de R$ 100,00 e dizer que "50% é meu e 50% do fulano", gerando um controle de quem deve quem.
-
-### 1.9. Gamificação e Saúde Financeira
-
-- **Score Financeiro:** Um algoritmo interno que avalia de 0 a 1000 a saúde financeira do usuário (baseado em: ter reserva de emergência, gastar menos do que ganha e não ter faturas atrasadas).
-- **Conquistas (Badges):** Medalhas virtuais por "3 Meses Guardando Dinheiro" ou "Orçamento de Lazer no Verde", para incentivar bons hábitos.
-
-### 1.10. Gestão de Dívidas e Empréstimos
-
-- **Amortização e Juros:** Um módulo especial para registrar um empréstimo ou financiamento (ex: Financiamento Imobiliário), calculando o quanto do pagamento mensal é juros e o quanto abate o montante principal.
-
-### 1.11. Multimoedas e Investimentos (Avançado)
-
-- **Suporte a Moedas Estrangeiras:** Lançamento de carteiras em USD ou EUR para usuários que viajam ou trabalham para fora, com conversão de câmbio estimativo.
-- **Tracking de Ativos Variáveis:** Além de saldo em dinheiro, permitir cadastrar criptomoedas (Bitcoin) que buscam cotação base e mudam o patrimônio automaticamente.
-
-### 1.12. Exportação e Contabilidade
-
-- **Relatório para Imposto de Renda:** Exportação detalhada dos totais de saldo do ano fiscal para a declaração de IR.
-- **Exportação Otimizada em PDF:** Extratos limpos e com marcação de comprovantes em formato amigável.
+| Fase       | Período              | Foco Principal          | Entregáveis Chave                                                              |
+| ---------- | -------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| **Fase 0** | Pré-MVP (Semana 0-2) | Fundação Técnica        | Infraestrutura, CI/CD, Auth, Schema DB                                         |
+| **Fase 1** | Mês 1-3              | MVP Essencial           | Core de transações, importação OFX/CSV, dashboards básicos                     |
+| **Fase 2** | Mês 4-6              | Experiência Completa    | Offline-first, cartões inteligentes, orçamentos elásticos, família, backoffice |
+| **Fase 3** | Mês 7-12             | Inteligência & Predição | IA/LLMs, Open Finance Premium, forecast, detecção de anomalias                 |
+| **Fase 4** | Ano 2 (Q1-Q2)        | Marketplace & Ativos    | Multimoedas, cripto, comparador de investimentos, monetização por lead         |
+| **Fase 5** | Ano 2 (Q3-Q4)        | Ecossistema B2B2C       | White Label, Módulo Kids, educação financeira gamificada                       |
 
 ---
 
-## 2. Visão do Backoffice (Para os Administradores)
+# 🏗️ FASE 0: Fundação e Infraestrutura (Pré-MVP)
 
-- **Gestão de Usuários:** Listagem de usuários cadastrados, status da conta (ativo, inativo, banido), e redefinição de senhas.
-- **Gestão de Planos e Assinaturas:** Caso o app tenha uma versão Premium (ex: mais de 2 contas, open finance liberado), o backoffice gerencia os planos.
-- **Análise de Dados Gerais:** Métricas de uso (DAU/MAU), taxa de conversão para premium e engajamento das funcionalidades.
-- **Suporte:** Histórico de tickets ou contatos do usuário com o suporte da plataforma.
+_Setup técnico, arquitetura base e pipelines de entrega_
 
----
+## 0.1. Stack Tecnológica Base
 
-## 3. Divisão de Frontend Web vs. Mobile App
+- **Backend:** Nest.js + Prisma ORM + PostgreSQL (tipagem robusta, queries escaláveis)
+- **Frontend Web:** Vite + React (dashboards ricos)
+- **Mobile:** React Native (lançamentos rápidos + push notifications)
+- **Backoffice:** Vite + React (painel administrativo isolado)
+- **Banco de Dados:** PostgreSQL com arquitetura de **Partidas Dobradas (Double-Entry Bookkeeping)** desde o dia 1:
+  - Todo débito possui crédito correspondente
+  - Garantia de integridade: `Ativos = Passivos + Patrimônio`
+  - Contas fantasmas para rastreio de despesas sem "vazamento" de saldo
 
-- **Frontend Web (React):** Focado em análises mais profundas, visualização rica em gráficos, configurações detalhadas e importação de arquivos pesados (CSV/OFX).
-- **Mobile (React Native):** Focado no registro rápido e _on-the-go_ de despesas (na fila do mercado, no caixa do restaurante), leitura de código de barras para boletos e recebimento de notificações push. **Arquitetura Offline-First:** É crítico utilizar bancos de dados locais (SQLite ou WatermelonDB) para garantir que o usuário cadastre lançamentos sem internet, criando uma fila de sincronização em background quando a conexão retornar.
+## 0.2. Infraestrutura & Hospedagem
 
----
+- **Frontend (Web & Backoffice):** Vercel (deploy automático, ecossistema React/Vite)
+- **Backend (NestJS):** Render.com ou Railway (orquestração de containers Node.js + DB gerenciado com backup)
+- **Banco de Dados:** PostgreSQL no Render/Railway ou Neon DB (Serverless Postgres)
+- **Mensageria & Cache:** RabbitMQ ou Redis (para BullMQ) — essencial para filas de importação pesada e cálculos de dashboard (CQRS/Event Sourcing)
 
-## 4. Tecnologias Mapeadas
+## 0.3. CI/CD & Qualidade de Código
 
-- **Backend:** Nest.js + Prisma ORM + PostgreSQL (para garantir tipagem robusta e queries escaláveis de relatórios).
-- **Frontend App:** Vite + React (dashboards ricos para o usuário final).
-- **Mobile:** React Native (lançamentos rápidos e push notifications).
-- **Backoffice:** Vite + React (Painel administrativo interno isolado por segurança).
+- **GitHub Actions:**
+  - Pipeline automatizado: Lint + Prettier + Testes em cada Pull Request
+  - Merge na `main` → deploy automático no Render (Backend) e Vercel (Frontend)
+- **Mobile Deploy:**
+  - Integração com EAS (Expo Application Services) / Fastlane
+  - Builds automáticos e deploy nas lojas (App Store / Google Play)
 
----
+## 0.4. Autenticação & Segurança Base
 
-## 5. Mapeamento de Telas (User Flow)
+- **WorkOS:** Login, Cadastro, Recuperação de Senha, Setup Inicial (criação da 1ª conta e saldo inicial)
+- **Sessão Segura Web:** Encerramento automático após inatividade
+- **Estrutura de Perfis:** Suporte a múltiplos usuários, preparação para contas compartilhadas futuras
 
-### 5.1. Telas do Frontend Web e Mobile (Usuário Final)
+## 0.5. Estrutura de Pastas & Monorepo (Opcional)
 
-- **Onboarding & Auth:** Login, Cadastro, Recuperação de Senha (via WorkOS) e Setup Inicial (criação da 1ª conta e saldo inicial).
-- **Dashboard (Home):** Resumo do mês, saldo atual vs faturas, atalhos de transação rápida e gráfico miniaturizado de despesas.
-- **Transações (Extrato):** Lista completa de entradas e saídas com filtros por data, conta, categoria e tags. Botão flutuante para "Nova Transação".
-- **Contas & Cartões:** Gerenciamento das carteiras, ajuste de limites de cartão, fechamento e pagamento de fatura.
-- **Orçamentos (Budget):** Definição de limites por categoria e visualização das barras de progresso (Termômetro de Gastos).
-- **Metas e Dívidas:** Acompanhamento visual de caixinhas para objetivos (ex: Reserva de Emergência) e painel para controle de quitação de empréstimos/financiamentos.
-- **Relatórios (Analytics) & Saúde Financeira:** Fluxo de caixa detalhado, Score Financeiro, gráficos de evolução de patrimônio e Month-over-Month.
-- **Grupo Familiar:** Tela para gerenciar parceiros de conta conectada, visualizar extratos conjuntos e o rateio do "quem deve a quem".
-- **Configurações:** Edição de perfil, gestão de assinatura (Premium), segurança (Biometria, Modo Oculto), conexão com Open Finance e exportação de dados para Imposto de Renda.
-
-### 5.2. Telas do Backoffice (Admin)
-
-- **Dashboard Admin:** Métricas globais (Novos usuários, Active Users, Receita de assinaturas).
-- **Gestão de Usuários:** Tabela de usuários, visualização de perfil detalhado (sem expor dados financeiros sensíveis), bloqueio de conta.
-- **Auditoria & Logs:** Histórico de ações críticas dentro da plataforma.
+- Organização inicial dos projetos Web, Mobile, Backend e Backoffice
+- Configuração de shared types entre frontend e backend via Prisma
 
 ---
 
-## 6. Infraestrutura e CI/CD
+# 🚀 FASE 1: MVP Essencial (Mês 1-3)
 
-- **Hospedagem Frontend (Web & Backoffice):** Vercel (ideal para ecossistema React/Next/Vite, com deploy automático rápido).
-- **Hospedagem Backend (NestJS):** render.com ou Railway (fácil orquestração de containers Node.js e banco de dados gerenciado com backups automáticos).
-- **Banco de Dados:** PostgreSQL hospedado no Render, Railway ou managed service (ex: Neon DB para Serverless Postgres).
-- **Mensageria e Cache (Background Jobs):** Instância de **RabbitMQ** ou **Redis** (para rodar o BullMQ) hospedada junto ao backend, essencial para lidar com filas de importação pesadas (CSV/OFX) e cálculos em tempo real de dashboards (CQRS/Event Sourcing para relatórios baseados nos logs do banco).
-- **Arquitetura Financeira (Double-Entry Bookkeeping):** O banco de dados evoluirá para a arquitetura de "Partidas Dobradas" (uma conta de Débito sempre possui uma de Crédito correspondente), garantindo **integridade contábil absoluta** contra saldo "vazando". Todo dinheiro que "sai" de uma conta vai obrigatoriamente para uma conta fantasma de "Despesa x", garantindo que `Ativos = Passivos + Patrimônio`.
-- **CI/CD pipeline:**
-  - **GitHub Actions:** Pipeline automatizado rodando Lint, Prettier e Testes em cada Pull Request para blindar a `main`.
-  - **Deploy Contínuo:** Merge na branch `main` dispara o deploy no Render (Backend) e Vercel (Frontend).
-  - **Deploy Mobile:** Integração com EAS (Expo Application Services) / Fastlane para builds automáticos e deploy nas lojas (App Store / Google Play).
-- **Gateways de Pagamento (Planos Premium):**
-  - **Web:** Integração com **Stripe** para checkout web flexível.
-  - **Mobile:** Integração com **RevenueCat** para uniformizar faturamentos In-App da App Store (Apple) e Google Play Billing.
+_Core funcional para validação de mercado: registro, importação e visualização básica_
+
+## 1.1. Gestão Básica de Contas e Carteiras
+
+- **Tipos de Carteiras Suportadas:**
+  - Conta Corrente, Conta Salário, Poupança
+  - Carteiras Digitais (Mercado Pago, PicPay)
+  - Cofres Físicos (dinheiro em espécie)
+- **Operações Básicas:** Criar, editar, arquivar contas; ajuste manual de saldo inicial
+
+## 1.2. Motor de Lançamentos (Core)
+
+- **Quick Add (Mobile):** Inserção de valor, conta e categoria com apenas 3 cliques — prioridade máxima para UX mobile
+- **Categorização Automática Inicial:** Algoritmo baseado em regras (Regex/String Matching) para auto-categorizar nomes de estabelecimentos
+- **Transações Manuais:** Registro completo de entradas/saídas com data, descrição, valor, conta, categoria
+- **Filtros Básicos de Extrato:** Por data, conta, categoria
+
+## 1.3. Importação de Dados (Prioridade 1)
+
+- **Importação de OFX/CSV:**
+  - Upload massivo de extratos bancários como motor automatizado principal do MVP
+  - Evita custos operacionais altos com Open Finance no início
+- **Arquitetura Assíncrona para Importação:**
+  - Upload dispara evento para fila (RabbitMQ/BullMQ)
+  - Workers processam categorização e conciliação em background
+  - Notificação ao usuário via WebSockets/Server-Sent Events (SSE) ao concluir
+
+## 1.4. Dashboards & Analytics Básicos
+
+- **Dashboard Home:**
+  - Resumo do mês, saldo atual vs faturas
+  - Atalhos para transação rápida
+  - Gráfico miniaturizado de despesas por categoria
+- **Fluxo de Caixa Simples:** Visualização básica de entradas vs saídas no período
+- **Reconciliação e Saldo Histórico:** Cálculo confiável de saldo ao longo do tempo (alta complexidade, mas essencial para MVP)
+
+## 1.5. Orçamentos Básicos (Smart Budgeting Lite)
+
+- **Limites por Categoria:** Definição de metas como "R$ 1.200 para Supermercado"
+- **Termômetro Visual Simples:** Barra de progresso comparando % do mês transcorrido vs % do orçamento gasto
+
+## 1.6. Segurança & Privacidade Básica
+
+- **Modo Oculto (Privacy Mode):** Botão "olhinho" para borrar numerais de dinheiro na tela
+- **Bloqueio Biométrico Mobile:** Exigir FaceID/TouchID para abrir o aplicativo
+- **Criptografia de Dados Sensíveis:** Proteção de informações financeiras em repouso e trânsito
+
+## 1.7. Telas Entregues (User Flow MVP)
+
+### Usuário Final (Web & Mobile)
+
+- **Onboarding & Auth:** Login, Cadastro, Recuperação de Senha (WorkOS), Setup Inicial
+- **Dashboard (Home):** Resumo mensal, saldo, atalhos, gráfico mini
+- **Transações (Extrato):** Lista com filtros básicos, botão flutuante "Nova Transação"
+- **Contas & Carteiras:** Gerenciamento simples de carteiras e saldos
+- **Orçamentos (Budget):** Definição de limites por categoria + barra de progresso
+- **Configurações:** Edição de perfil, segurança (biometria, modo oculto), exportação básica
+
+### Backoffice (Admin)
+
+- **Dashboard Admin:** Métricas globais simples (novos usuários, active users)
+- **Gestão de Usuários:** Listagem, status (ativo/inativo/banido), redefinição de senha
+
+## 1.8. Funcionalidades Não Incluídas no MVP (Para Fases Seguintes)
+
+> _Estes itens estão no escopo total, mas foram postergados intencionalmente para validação inicial:_
+
+- Cartões de crédito inteligentes (cálculo de melhor data, previsão de faturas)
+- Recorrência avançada e parcelamentos complexos
+- Micro-classificação com tags e projetos cruzados
+- Anexos em nuvem (fotos, PDFs)
+- Orçamentos elásticos (rollover de saldo entre categorias)
+- Dashboards avançados (Sankey, MoM, Net Worth histórico)
+- Open Finance, IA, multimoedas, cripto, marketplace, B2B
 
 ---
 
-## 7. Tabela de Priorização Sugerida (MVP)
+# ✨ FASE 2: Experiência Completa & Colaboração (Mês 4-6)
 
-Com base nas análises de viabilidade tecnológica e de negócios, a estrutura do escopo inicial se focará na seguinte priorização:
+_Refinamento da UX, recursos avançados de gestão e trabalho em equipe_
 
-| Funcionalidade                      | Impacto | Complexidade | Recomendação               |
-| ----------------------------------- | ------- | ------------ | -------------------------- |
-| **Quick Add (Mobile)**              | Alto    | Baixa        | **Prioridade 1**           |
-| **Importação de OFX/CSV**           | Alto    | Média        | **Prioridade 1**           |
-| **Safe-to-Spend**                   | Alto    | Baixa        | **Diferencial de Mercado** |
-| **Gamificação/Badges**              | Baixo   | Média        | **Postergável**            |
-| **Open Finance API**                | Médio   | Alta         | **Postergável (Custo)**    |
-| **Reconciliação e Saldo Histórico** | Alto    | Alta         | **Prioridade 1**           |
+## 2.1. Mobile Offline-First (Crítico)
+
+- **Banco de Dados Local:** SQLite ou WatermelonDB para cadastro sem internet
+- **Fila de Sincronização:** Background sync automático ao reconectar
+- **Resiliência:** Garantia de que nenhum lançamento seja perdido em áreas sem cobertura
+
+## 2.2. Cartões de Crédito Inteligentes
+
+- **Gestão de Múltiplos Cartões:** Bandeiras, limites totais e disponíveis por cartão
+- **Cálculo da Melhor Data de Compra:** Algoritmo baseado em dia de fechamento vs vencimento
+- **Previsão de Faturas Futuras:** Projeção automática de compras parceladas nos meses seguintes
+- **Conciliação Automática de Faturas:** Pagamento de fatura atualiza saldo e histórico de forma integrada
+
+## 2.3. Recorrência Avançada & Parcelamentos
+
+- **Assinaturas Fixas:** Netflix, Spotify etc. que se auto-lançam no dia correto
+- **Parcelamentos no Cartão:** Divisão automática do valor total e alocação correta nas faturas futuras
+- **Edição em Lote:** Alterar recorrências ou parcelamentos existentes com propagação controlada
+
+## 2.4. Orçamentos Estratégicos (Smart Budgeting Completo)
+
+- **Limites Dinâmicos e Elásticos (Envelope Budgeting):**
+  - Sistema Zero-based budget: "R$ 1.200 para Supermercado"
+  - Rollover automático: saldo não gasto rola para o mês seguinte OU é realocado para categoria estourada
+- **Termômetro de Gastos com Alertas:**
+  - Barra de progresso em tempo real
+  - Webhooks/Push notifications: "Você gastou 80% do orçamento de Lazer, mas estamos apenas no dia 10"
+- **Planejamento de Metas (Goals):**
+  - Caixinhas para objetivos (ex: "Trocar de Carro: R$ 50.000")
+  - Cálculo automático de prazo estimado conforme depósitos são realizados
+
+## 2.5. Central de Dashboards Avançada
+
+- **Fluxo de Caixa Detalhado:**
+  - Gráfico em cascata (Waterfall) ou Sankey Diagram
+  - Mostra o caminho do dinheiro: salário → moradia, alimentação, impostos etc.
+- **Análise Month-over-Month (MoM):**
+  - Comparativos visuais: "Neste mês você gastou 15% a mais em Delivery comparado ao mês anterior"
+- **Evolução de Patrimônio Líquido (Net Worth):**
+  - Gráfico histórico da riqueza do usuário (ativos - passivos)
+
+## 2.6. Calendário Financeiro & Centro de Controle
+
+- **Visão de Calendário UI:**
+  - Calendário real com marcações visuais de salários, boletos e faturas
+  - Cores e ícones para diferentes tipos de transação
+- **Notificações Pró-ativas:**
+  - Push matinal: "Bom dia! Você tem 2 contas vencendo hoje no valor de R$ 150,00"
+- **Insights de Dinheiro Livre (Safe-to-Spend):**
+  - Cálculo: saldo atual - despesas fixas iminentes = quanto o usuário pode gastar hoje sem comprometer o mês
+
+## 2.7. Colaboração Familiar
+
+- **Contas Compartilhadas (Joint Accounts):**
+  - Convite para cônjuge/familiar (outro usuário WorkOS) visualizar/editar transações de carteira específica
+  - Permissões granulares (somente leitura vs edição)
+- **Divisão de Despesas (Split):**
+  - Lançar conta de R$ 100,00 e definir "50% meu / 50% fulano"
+  - Controle de "quem deve a quem" com histórico de acertos
+
+## 2.8. Gamificação & Saúde Financeira (Básica)
+
+- **Score Financeiro (0-1000):**
+  - Algoritmo baseado em: reserva de emergência, gastar menos do que ganha, sem faturas atrasadas
+- **Conquistas (Badges):**
+  - Medalhas virtuais: "3 Meses Guardando Dinheiro", "Orçamento de Lazer no Verde"
+  - Incentivo a bons hábitos com feedback positivo
+
+## 2.9. Gestão de Dívidas e Empréstimos
+
+- **Módulo de Amortização e Juros:**
+  - Registro de empréstimos/financiamentos (ex: Imobiliário, Veicular)
+  - Cálculo mensal: quanto é juros vs quanto abate o principal
+  - Projeção de quitação e economia com amortizações extras
+
+## 2.10. Exportação & Contabilidade
+
+- **Relatório para Imposto de Renda:**
+  - Exportação detalhada dos totais de saldo do ano fiscal para declaração de IR
+- **Exportação Otimizada em PDF:**
+  - Extratos limpos, com marcação de comprovantes, formato amigável para impressão/compartilhamento
+
+## 2.11. Backoffice Completo
+
+- **Gestão de Usuários Avançada:**
+  - Listagem com filtros, visualização de perfil detalhado (sem expor dados financeiros sensíveis), bloqueio de conta
+- **Gestão de Planos e Assinaturas:**
+  - Controle de planos Premium (ex: +2 contas, Open Finance liberado)
+  - Integração com **Stripe (Web)** e **RevenueCat (Mobile)** para faturamento unificado App Store/Google Play
+- **Análise de Dados Gerais:**
+  - Métricas de uso: DAU/MAU, taxa de conversão para premium, engajamento por funcionalidade
+- **Suporte Integrado:**
+  - Histórico de tickets/contatos do usuário com o suporte da plataforma
+
+## 2.12. Telas Adicionais Entregues
+
+### Usuário Final
+
+- **Metas e Dívidas:** Acompanhamento visual de caixinhas + painel de quitação de empréstimos
+- **Relatórios (Analytics) & Saúde Financeira:** Fluxo de caixa detalhado, Score, gráficos MoM e Net Worth
+- **Grupo Familiar:** Gerenciar parceiros, extratos conjuntos, rateio "quem deve a quem"
+- **Configurações Avançadas:** Gestão de assinatura Premium, conexão futura com Open Finance, exportação IR
+
+### Backoffice
+
+- **Auditoria & Logs:** Histórico de ações críticas dentro da plataforma para compliance e debugging
 
 ---
 
-## 8. Novas Fases do Projeto (Ecossistema Inteligente)
+# 🧠 FASE 3: Inteligência Artificial e Predição (Mês 7-12)
 
-### Fase 3: Inteligência Artificial e Predição (O Cérebro)
+_O app deixa de ser reativo e passa a ser preditivo e consultivo_
 
-Nesta fase, o app deixa de ser reativo (registrar o que passou) e passa a ser preditivo (avisar o que virá).
+## 3.1. IA de Categorização Semântica
 
-- **IA de Categorização Semântica:** Uso de LLMs (como GPT-4o ou Gemini) para entender descrições confusas de extratos (ex: "EST-9922-SÃO-PAULO" identificado como "Posto de Gasolina").
-- **Previsão de Saldo (Cashflow Forecasting):** Algoritmo que analisa o histórico e projeta o saldo do usuário para os próximos 30, 60 e 90 dias, alertando sobre possíveis furos no caixa.
-- **Detecção de Anomalias:** Notificações contextuais (ex: _"Detectamos que sua conta de luz veio 40% acima da média dos últimos 3 meses"_).
-- **Chatbot Consultivo (Financial Coach):** Interface de chat para perguntas financeiras complexas do próprio orçamento do usuário.
+- **LLMs para Descrição de Extratos:**
+  - Uso de GPT-4o, Gemini ou modelos open-source fine-tuned
+  - Exemplo: "EST-9922-SÃO-PAULO" → identificado como "Posto de Gasolina - Combustível"
+- **Aprendizado Contínuo:**
+  - Correções do usuário alimentam o modelo para melhorar precisão ao longo do tempo
+- **Fallback para Regras:**
+  - Se a IA não confiar na predição, recai para o sistema de regras da Fase 1
 
-### Fase 4: Marketplace e Open Finance Ativo (A Monetização)
+## 3.2. Previsão de Saldo (Cashflow Forecasting)
 
-Transformar a plataforma em um hub de serviços financeiros onde o app gera receita por lead qualificado.
+- **Algoritmo Preditivo:**
+  - Analisa histórico de receitas/despesas recorrentes e sazonais
+  - Projeta saldo para os próximos 30, 60 e 90 dias
+- **Alertas de Furo de Caixa:**
+  - Notificação proativa: "Atenção: baseado nos seus padrões, seu saldo pode ficar negativo em 12 dias"
+- **Simulador de Cenários:**
+  - "E se eu gastar R$ 200 a mais em Lazer este mês?" → impacto projetado no forecast
 
-- **Comparador de Investimentos:** Se o usuário tem dinheiro parado, o app sugere CDBs com melhor rendimento.
-- **Otimização de Crédito:** Análise das taxas de juros dos empréstimos atuais e sugestão de portabilidade.
-- **Recuperação de Cashback/Taxas:** Integração com APIs de programas de fidelidade.
+## 3.3. Detecção de Anomalias
 
-### Fase 5: B2B2C e Educação (O Ecossistema)
+- **Monitoramento Contextual:**
+  - "Detectamos que sua conta de luz veio 40% acima da média dos últimos 3 meses"
+  - "Transação de R$ 500 em estabelecimento nunca antes visitado — foi você?"
+- **Aprendizado de Padrões Pessoais:**
+  - O sistema entende o perfil de gastos do usuário e sinaliza desvios significativos
 
-Expansão do modelo de negócio para além do usuário final direto.
+## 3.4. Chatbot Consultivo (Financial Coach)
 
-- **White Label para Empresas (Benefício Corporativo):** Versão do app vendida para RHs como benefício de saúde financeira.
-- **Módulo Kids/Teen:** Contas dependentes com "mesada educativa", onde pais aprovam gastos.
-- **Trilhas de Aprendizado Gamificadas:** Micro-cursos liberados conforme o comportamento financeiro do usuário.
+- **Interface de Chat Natural:**
+  - Perguntas como: "Quanto gastei com iFood nos últimos 3 meses?", "Posso comprar um celular de R$ 3.000 sem comprometer minhas metas?"
+- **Respostas Baseadas no Próprio Orçamento:**
+  - O chatbot acessa os dados do usuário (com permissão) para dar conselhos personalizados
+- **Sugestões Proativas:**
+  - "Você tem R$ 800 sobrando no orçamento de Lazer — que tal alocar para sua meta de Viagem?"
+
+## 3.5. Open Finance (Premium)
+
+- **Conexão Read-Only Constante:**
+  - Integração com APIs bancárias via Belvo ou Pluggy
+  - Sincronização automática de transações sem necessidade de upload manual
+- **Modelo de Monetização:**
+  - Devido ao custo por usuário ativo, feature atrelada estritamente ao plano Premium
+  - Toggle nas configurações para ativar/desativar por instituição financeira
+- **Conciliação Automática Aprimorada:**
+  - Transações importadas via Open Finance são automaticamente conciliadas com lançamentos manuais ou importados
+
+## 3.6. Micro-classificação Avançada (Tags & Projetos)
+
+- **Cruzamento de Dados Inteligente:**
+  - Categoria "Transporte" + tag `#viagem_disney` = isolar gastos de evento específico
+  - Relatórios filtráveis por múltiplas dimensões: categoria + tag + projeto + período
+- **Autotagging com IA:**
+  - Sugestão automática de tags baseada em descrição, local, valor e histórico
+
+## 3.7. Anexos em Nuvem com OCR Básico
+
+- **Upload de Comprovantes:**
+  - Foto de cupom fiscal, comprovante de Pix ou PDF de serviço associado à transação
+- **OCR para Extração de Dados:**
+  - Leitura automática de valor, data e estabelecimento a partir da imagem (reduz digitação manual)
+- **Armazenamento Seguro:**
+  - Arquivos criptografados, com acesso restrito ao proprietário e colaboradores autorizados
+
+## 3.8. Infraestrutura de IA & Escala
+
+| Tecnologia                                       | Finalidade                                                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| **Vector Database (Pinecone/Weaviate/pgvector)** | Armazenar embeddings de transações para busca semântica livre e cruzamentos de IA rápidos |
+| **Cache de Modelos (Redis)**                     | Reduzir latência em inferências frequentes de categorização e forecast                    |
+| **Filas de Inferência (RabbitMQ)**               | Processamento assíncrono de requisições a LLMs para não bloquear a UX                     |
 
 ---
 
-## 9. Arquitetura de Dados Adicional (AI & Scale)
+# 💰 FASE 4: Marketplace e Open Finance Ativo (Ano 2, Q1-Q2)
 
-Para suportar as novas fases (além do PostgreSQL, Prisma, e Redis/RabbitMQ já mapeados), a infraestrutura exigirá:
+_Transformação em hub de serviços financeiros com monetização por lead qualificado_
 
-| Tecnologia                                       | Finalidade                                                                                            |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| **Vector Database (Pinecone/Weaviate/pgvector)** | Para armazenar embeddings de transações e permitir busca semântica livre e cruzamentos de IA rápidos. |
+## 4.1. Comparador de Investimentos
+
+- **Sugestão Inteligente de Aplicações:**
+  - Se o usuário tem dinheiro parado na conta, o app sugere CDBs, LCIs, LCAs com melhor rendimento líquido
+- **Perfil de Investidor:**
+  - Questionário inicial para entender tolerância a risco e objetivos
+- **Integração com Corretoras (Parcerias):**
+  - Redirecionamento seguro para abertura de conta ou aplicação direta (receita por lead/conversão)
+
+## 4.2. Otimização de Crédito
+
+- **Análise de Taxas de Juros Atuais:**
+  - Comparativo dos empréstimos ativos do usuário com ofertas de mercado
+- **Sugestão de Portabilidade:**
+  - "Você pode economizar R$ 1.200/ano trocando seu empréstimo pessoal do Banco X pelo Banco Y"
+- **Simulador de Renegociação:**
+  - Impacto de alongar prazo, reduzir parcela ou amortizar principal
+
+## 4.3. Recuperação de Cashback & Taxas
+
+- **Integração com APIs de Programas de Fidelidade:**
+  - Detecta compras elegíveis em parceiros e notifica o usuário para resgatar cashback
+- **Alertas de Taxas Evitáveis:**
+  - "Você pagou taxa de saque no Banco X — use a conta Y para isenção"
+- **Histórico de Economia Gerada:**
+  - Dashboard mostrando quanto o usuário economizou usando as sugestões do app
+
+## 4.4. Multimoedas & Conversão Estimativa
+
+- **Suporte a Carteiras em USD, EUR, etc.:**
+  - Lançamento de transações em moeda estrangeira para usuários que viajam ou trabalham para fora
+- **Conversão de Câmbio Estimativa:**
+  - Usa cotação do dia ou média mensal para converter e consolidar no patrimônio em BRL
+- **Proteção Cambial (Futuro):**
+  - Alertas de variação cambial impactando patrimônio (base para features de hedge)
+
+## 4.5. Tracking de Ativos Variáveis
+
+- **Criptomoedas:**
+  - Cadastro de Bitcoin, Ethereum etc. com busca automática de cotação em tempo real
+  - Atualização automática do patrimônio conforme o mercado se move
+- **Ações e Fundos (Futuro):**
+  - Integração com APIs de corretoras para importar posições de investimentos variáveis
+- **Consolidação de Patrimônio Total:**
+  - Visão unificada: dinheiro em conta + investimentos + cripto + bens físicos (opcional)
+
+## 4.6. Monetização Avançada
+
+- **Receita por Lead Qualificado:**
+  - Cada sugestão de investimento, portabilidade ou cashback gera potencial receita via parceria
+- **Planos Tiered Premium:**
+  - Basic (gratuito), Plus (Open Finance + IA básica), Pro (marketplace + consultoria avançada)
+- **Analytics de Conversão no Backoffice:**
+  - Métricas de clique, conversão e receita por feature de marketplace
 
 ---
 
-## 10. Cronograma de Lançamento (Roadmap Macro)
+# 🌐 FASE 5: B2B2C e Educação (Ano 2, Q3-Q4)
 
-1. **Mês 1-3 (MVP):** Lançamento do Core (Lançamentos manuais, Importação OFX, Dashboards básicos e Reconciliação).
-2. **Mês 4-6 (V1.5):** Mobile Offline-first, Grupo Familiar e Notificações Pró-ativas.
-3. **Mês 7-12 (V2.0):** Open Finance (Premium), IA Preditiva (LLMs) e Automação extrema.
-4. **Ano 2 (Expansão):** Marketplace de crédito/investimentos e Verticais B2B2C (Módulo Kids/Empresas).
+_Expansão do modelo de negócio para além do usuário final direto_
+
+## 5.1. White Label para Empresas (Benefício Corporativo)
+
+- **Versão do App para RHs:**
+  - Saúde financeira como benefício corporativo, com branding da empresa contratante
+- **Dashboards Anonimizados para Gestores:**
+  - Métricas agregadas de saúde financeira dos colaboradores (sem expor dados individuais)
+- **Programas de Incentivo:**
+  - Empresas podem criar metas coletivas (ex: "Time que mais economizar ganha um dia off")
+
+## 5.2. Módulo Kids/Teen (Educação Financeira Familiar)
+
+- **Contas Dependentes:**
+  - Pais criam sub-contas para filhos com limites e permissões configuráveis
+- **Mesada Educativa:**
+  - Programação de repasses automáticos com tarefas associadas (ex: "Complete 3 atividades para liberar mesada")
+- **Aprovação de Gastos em Tempo Real:**
+  - Notificação para pais quando filho tenta gastar acima do combinado — aprovação/recusa via app
+- **Interface Gamificada para Teens:**
+  - Design adaptado, linguagem acessível, conquistas por economia e planejamento
+
+## 5.3. Trilhas de Aprendizado Gamificadas
+
+- **Micro-cursos Contextuais:**
+  - Conteúdo liberado conforme comportamento: "Viemos notar que você gastou muito com delivery — que tal uma dica de meal prep?"
+- **Badges de Conhecimento:**
+  - Medalhas por completar módulos: "Mestre do Orçamento", "Investidor Iniciante"
+- **Progressão com Recompensas:**
+  - Concluir trilhas pode desbloquear features Premium por tempo limitado ou descontos em parceiros
+
+## 5.4. Expansão de Verticais B2B2C
+
+- **Parcerias com Fintechs e Bancos:**
+  - Oferecer o motor de orçamento como módulo embutido em outros apps financeiros
+- **APIs Públicas (Futuro):**
+  - Desenvolvedores terceiros podem construir integrações sobre a plataforma (com controle de acesso e monetização)
+- **Ecossistema de Add-ons:**
+  - Plugins para nichos: freelancers, MEIs, aposentados, estudantes — cada um com regras e dashboards específicos
+
+---
+
+# 🔄 Mapeamento Cruzado: Funcionalidades por Fase (Resumo)
+
+| Funcionalidade Original         | Fase   | Justificativa                                                    |
+| ------------------------------- | ------ | ---------------------------------------------------------------- |
+| Quick Add (Mobile)              | Fase 1 | Core de UX mobile, alto impacto, baixa complexidade              |
+| Importação OFX/CSV              | Fase 1 | Automatização essencial sem custo de Open Finance                |
+| Safe-to-Spend                   | Fase 1 | Diferencial de mercado com cálculo simples                       |
+| Reconciliação e Saldo Histórico | Fase 1 | Base contábil confiável (double-entry)                           |
+| Categorização por Regras        | Fase 1 | Suficiente para MVP, evolui para IA depois                       |
+| Dashboards Básicos              | Fase 1 | Visualização mínima para tomada de decisão                       |
+| Mobile Offline-First            | Fase 2 | Melhora significativa de UX, depende de estrutura de sync        |
+| Cartões Inteligentes            | Fase 2 | Requer histórico e lógica de fatura madura                       |
+| Orçamentos Elásticos            | Fase 2 | Complexidade de negócio, requer base de lançamentos estável      |
+| Colaboração Familiar            | Fase 2 | Feature social que depende de perfis e permissões consolidados   |
+| Gamificação Básica              | Fase 2 | Engajamento após usuário já estar ativo e registrando dados      |
+| Gestão de Dívidas               | Fase 2 | Módulo especializado que requer estrutura de amortização         |
+| Open Finance                    | Fase 3 | Custo alto, justificado apenas com base de usuários Premium      |
+| IA de Categorização             | Fase 3 | Requer volume de dados e infraestrutura de ML vetorial           |
+| Forecast & Anomalias            | Fase 3 | Preditivo só faz sentido com histórico consistente               |
+| Chatbot Consultivo              | Fase 3 | IA generativa requer contexto rico e controle de alucinação      |
+| Multimoedas & Cripto            | Fase 4 | Nicho avançado, depende de consolidação de patrimônio madura     |
+| Marketplace de Investimentos    | Fase 4 | Monetização por lead exige base de usuários engajada e confiável |
+| White Label B2B                 | Fase 5 | Expansão de modelo de negócio após validação B2C                 |
+| Módulo Kids/Teen                | Fase 5 | Requer controle parental robusto e compliance com LGPD infantil  |
+
+---
+
+# 📋 Tabela de Priorização Reafirmada (MVP = Fase 1)
+
+| Funcionalidade                      | Impacto | Complexidade | Fase   | Status                          |
+| ----------------------------------- | ------- | ------------ | ------ | ------------------------------- |
+| **Quick Add (Mobile)**              | Alto    | Baixa        | Fase 1 | ✅ Prioridade 1                 |
+| **Importação de OFX/CSV**           | Alto    | Média        | Fase 1 | ✅ Prioridade 1                 |
+| **Safe-to-Spend**                   | Alto    | Baixa        | Fase 1 | ✅ Diferencial de Mercado       |
+| **Reconciliação e Saldo Histórico** | Alto    | Alta         | Fase 1 | ✅ Prioridade 1 (core contábil) |
+| **Categorização por Regras**        | Médio   | Baixa        | Fase 1 | ✅ Base para IA futura          |
+| **Gamificação/Badges**              | Baixo   | Média        | Fase 2 | ⏭️ Postergável                  |
+| **Open Finance API**                | Médio   | Alta         | Fase 3 | ⏭️ Postergável (Custo)          |
+| **IA Preditiva (LLMs)**             | Alto    | Alta         | Fase 3 | ⏭️ Requer escala e dados        |
+| **Marketplace de Crédito**          | Alto    | Alta         | Fase 4 | ⏭️ Monetização avançada         |
+| **White Label B2B**                 | Alto    | Muito Alta   | Fase 5 | ⏭️ Expansão estratégica         |
+
+---
+
+# 🧭 Roadmap Macro Consolidado
+
+1. **Fase 0 (Pré-MVP | Semanas 0-2)**  
+   → Infraestrutura, CI/CD, Auth, Schema DB Double-Entry
+
+2. **Fase 1 (MVP | Meses 1-3)**  
+   → Core: Quick Add, Importação OFX/CSV, Lançamentos manuais, Dashboards básicos, Safe-to-Spend, Reconciliação, Segurança básica
+
+3. **Fase 2 (Experiência Completa | Meses 4-6)**  
+   → Offline-first, Cartões inteligentes, Orçamentos elásticos, Família, Backoffice completo, Gamificação básica, Gestão de dívidas, Exportação IR
+
+4. **Fase 3 (Inteligência | Meses 7-12)**  
+   → IA de categorização, Forecast de saldo, Detecção de anomalias, Chatbot consultivo, Open Finance Premium, Vector DB, Micro-tags avançadas
+
+5. **Fase 4 (Marketplace | Ano 2 Q1-Q2)**  
+   → Comparador de investimentos, Otimização de crédito, Cashback, Multimoedas, Cripto, Monetização por lead
+
+6. **Fase 5 (Ecossistema | Ano 2 Q3-Q4)**  
+   → White Label corporativo, Módulo Kids/Teen, Trilhas educacionais gamificadas, Expansão B2B2C
