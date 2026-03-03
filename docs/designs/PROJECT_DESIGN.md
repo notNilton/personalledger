@@ -47,6 +47,36 @@ Este documento detalha as principais funcionalidades sugeridas para a plataforma
 - **Notificações Pró-ativas:** Push notification com o aviso matinal: "Bom dia! Você tem 2 contas vencendo hoje no valor de R$ 150,00".
 - **Insights de Dinheiro Livre (Safe-to-Spend):** Um cálculo que subtrai as despesas fixas iminentes do saldo atual da conta e diz ao usuário quanto ele _realmente_ tem livre para gastar hoje sem comprometer os pagamentos daquele mês.
 
+### 1.7. Segurança e Privacidade
+
+- **Modo Oculto (Privacy Mode):** Botões rápidos (um "olhinho") para borrar/ocultar todos os numerais de dinheiro na tela quando o usuário estiver em público.
+- **Bloqueio Biométrico:** No Mobile, exigir FaceID/TouchID para abrir o aplicativo.
+- **Sessão Segura:** Encerramento automático de sessão após tempo de inatividade no Web.
+
+### 1.8. Colaboração Familiar
+
+- **Contas Compartilhadas (Joint Accounts):** Capacidade de convidar um cônjuge ou familiar (outro usuário WorkOS) para visualizar e editar as mesmas transações de uma carteira específica.
+- **Divisão de Despesas (Split):** Lançar uma conta de R$ 100,00 e dizer que "50% é meu e 50% do fulano", gerando um controle de quem deve quem.
+
+### 1.9. Gamificação e Saúde Financeira
+
+- **Score Financeiro:** Um algoritmo interno que avalia de 0 a 1000 a saúde financeira do usuário (baseado em: ter reserva de emergência, gastar menos do que ganha e não ter faturas atrasadas).
+- **Conquistas (Badges):** Medalhas virtuais por "3 Meses Guardando Dinheiro" ou "Orçamento de Lazer no Verde", para incentivar bons hábitos.
+
+### 1.10. Gestão de Dívidas e Empréstimos
+
+- **Amortização e Juros:** Um módulo especial para registrar um empréstimo ou financiamento (ex: Financiamento Imobiliário), calculando o quanto do pagamento mensal é juros e o quanto abate o montante principal.
+
+### 1.11. Multimoedas e Investimentos (Avançado)
+
+- **Suporte a Moedas Estrangeiras:** Lançamento de carteiras em USD ou EUR para usuários que viajam ou trabalham para fora, com conversão de câmbio estimativo.
+- **Tracking de Ativos Variáveis:** Além de saldo em dinheiro, permitir cadastrar criptomoedas (Bitcoin) que buscam cotação base e mudam o patrimônio automaticamente.
+
+### 1.12. Exportação e Contabilidade
+
+- **Relatório para Imposto de Renda:** Exportação detalhada dos totais de saldo do ano fiscal para a declaração de IR.
+- **Exportação Otimizada em PDF:** Extratos limpos e com marcação de comprovantes em formato amigável.
+
 ---
 
 ## 2. Visão do Backoffice (Para os Administradores)
@@ -83,9 +113,10 @@ Este documento detalha as principais funcionalidades sugeridas para a plataforma
 - **Transações (Extrato):** Lista completa de entradas e saídas com filtros por data, conta, categoria e tags. Botão flutuante para "Nova Transação".
 - **Contas & Cartões:** Gerenciamento das carteiras, ajuste de limites de cartão, fechamento e pagamento de fatura.
 - **Orçamentos (Budget):** Definição de limites por categoria e visualização das barras de progresso (Termômetro de Gastos).
-- **Metas:** acompanhamento visual de caixinhas para objetivos (ex: Reserva de Emergência).
-- **Relatórios (Analytics):** Fluxo de caixa detalhado, gráficos de evolução de patrimônio e Month-over-Month.
-- **Configurações:** Edição de perfil, gestão de assinatura (Premium), conexão com Open Finance, categorias customizadas e exportação de dados.
+- **Metas e Dívidas:** Acompanhamento visual de caixinhas para objetivos (ex: Reserva de Emergência) e painel para controle de quitação de empréstimos/financiamentos.
+- **Relatórios (Analytics) & Saúde Financeira:** Fluxo de caixa detalhado, Score Financeiro, gráficos de evolução de patrimônio e Month-over-Month.
+- **Grupo Familiar:** Tela para gerenciar parceiros de conta conectada, visualizar extratos conjuntos e o rateio do "quem deve a quem".
+- **Configurações:** Edição de perfil, gestão de assinatura (Premium), segurança (Biometria, Modo Oculto), conexão com Open Finance e exportação de dados para Imposto de Renda.
 
 ### 5.2. Telas do Backoffice (Admin)
 
