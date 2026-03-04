@@ -30,6 +30,7 @@ model User {
     budgets        Budget[]
     goals          Goal[]
     accounts       Account[]
+    vehicles       Vehicle[]
 }
 
 enum AccountType {
@@ -219,6 +220,8 @@ model Transaction {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    refuelingLog RefuelingLog?
+
     @@index([date])
     @@index([userId, date])
 }
@@ -307,4 +310,40 @@ model AuditLog {
 
     @@index([entity, entityId])
     @@index([userId])
+}
+
+model Vehicle {
+    id     String @id @default(uuid())
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    name         String  @db.VarChar(100)
+    licensePlate String? @db.VarChar(10)
+    make         String? @db.VarChar(50)
+    model        String? @db.VarChar(50)
+    year         Int?
+
+    isActive  Boolean   @default(true)
+    deletedAt DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    refuelings RefuelingLog[]
+}
+
+model RefuelingLog {
+    id        String  @id @default(uuid())
+    vehicleId String
+    vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+    transactionId String      @unique
+    transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+    odometer      Decimal @db.Decimal(10, 2)
+    fuelLiters    Decimal @db.Decimal(8, 3)
+    pricePerLiter Decimal @db.Decimal(8, 3)
+    isFullTank    Boolean @default(true)
+
+    createdAt DateTime @default(now())
 }
