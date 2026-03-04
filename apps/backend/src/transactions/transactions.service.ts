@@ -1,32 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import {
-  Transaction,
-  TransactionType,
-  TransactionStatus,
-} from '@project-budget/database';
-
-export interface CreateTransactionDto {
-  accountId: string;
-  categoryId?: string;
-  type: TransactionType;
-  amount: number;
-  date: Date;
-  description: string;
-  notes?: string;
-  currencyCode?: string;
-}
-
-export interface ListTransactionsQuery {
-  userId: string;
-  accountId?: string;
-  type?: TransactionType;
-  status?: TransactionStatus;
-  from?: Date;
-  to?: Date;
-  page?: number;
-  limit?: number;
-}
+import { Transaction, Prisma } from '@project-budget/database';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { ListTransactionsQuery } from './dto/list-transactions.query';
 
 @Injectable()
 export class TransactionsService {
@@ -87,7 +63,7 @@ export class TransactionsService {
         accountId: dto.accountId,
         categoryId: dto.categoryId,
         type: dto.type,
-        amount: dto.amount as unknown as never,
+        amount: new Prisma.Decimal(dto.amount),
         date: dto.date,
         description: dto.description,
         notes: dto.notes,

@@ -7,11 +7,9 @@ import {
   Delete,
   Query,
 } from '@nestjs/common';
-import {
-  TransactionsService,
-  CreateTransactionDto,
-  ListTransactionsQuery,
-} from './transactions.service';
+import { TransactionsService } from './transactions.service';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { ListTransactionsQuery } from './dto/list-transactions.query';
 import { Transaction } from '@project-budget/database';
 
 @Controller('transactions')
