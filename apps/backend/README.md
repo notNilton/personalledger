@@ -1,99 +1,57 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ⚙️ Project Budget - Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Esta é a API central para a plataforma **Project Budget**, desenvolvida com **[NestJS](https://nestjs.com/)**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+O Backend é o motor de nossa plataforma unificada, responsável por toda a lógica de roteamento, controle e segurança dos dados contábeis.
 
-## Description
+## 📖 Sobre a Arquitetura Backend
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+O Backend atua como a única ponte autorizada para manipular os dados confidenciais do sistema monetário da aplicação. Ele não é conectado diretamente a banco de dados legados e gerencia a comunicação importando o modulo `@project-budget/database` derivado de nosso Monorepo Workspace.
 
-## Project setup
+### Princípios (Reflexos do Design Documentado)
+
+1. **Partidas Dobradas (Double-Entry Bookkeeping):**
+   Não existe conceito de vazamento de saldo. Modificações financeiras utilizam roteamento rigoroso para criar correspondência exata de passivos, ativos, origens e destinos da transação.
+
+2. **Autenticação Desacoplada via SSO (WorkOS):**
+   A segurança da autenticação, o armazenamento de senhas e todo mecanismo de Autenticação/MFA foi tercerizado com sucesso sob a alçada do provedor `WorkOS`. Nossos tokens recebidos são validados globalmente por intermédio de Guards padronizados nativos do ecossistema Nest (ex: `WorkOsAuthGuard`) extraindo o `workos_id` local.
+
+3. **Carga Massiva e Performance:**
+   Como a importação é massiva (Fase 1 focada em processamento OFX e CSV paralelos), todas as filas lógicas e rotinas assíncronas do backend futuramente conversarão com instâncias de redis e RabbitMQ usando filas BullMQ gerenciadas pelo próprio NestJS.
+
+4. **Trilhas de Auditoria (Audit Logs):**
+   Modificações fundamentais são armazenadas de forma inerte e imutável para rastreios anti-fraude.
+
+## 🗂 Estrutura e Domínios da API
+
+A estrutura lógica do projeto segue a segmentação dos domínios especificados no planejamento (`docs/designs/DATABASE_DESIGN.md`):
+
+- **`/users`**: Gerenciamento de preferências do perfil não-sensíveis, avatares, sincronia de níveis premium.
+- **`/accounts`**: Gestão de portfólio (Carteiras digitais, Investimento, Dinheiro, CC, Poupança).
+- **`/transactions & /transfers`**: Endpoint principal de entradas, saídas, pendentes e pagamentos de cartão.
+- **`/budgets`**: O grande motor "Smart Budgeting" em base-zero.
+- **`/goals`**: Sistema de metas/caixinhas para alocação a longo prazo.
+- **`/vehicles`**: O Módulo Fleet Tracking/Frota (Gerenciador de Abastecimentos com cruzamento automatizado com Transações contábeis de Combustíveis).
+
+## 🛠 Padrões de Código
+
+Os pacotes base de `Class Validator` e `Class Transformer` atuam integrados nas camadas de entrada do HTTP. Usamos exaustivamente `DTO`s (Data Transfer Objects) tipados, exportando `PartialTypes` para atualizações flexíveis sob nossos controllers unificados.
+
+Soft Deletions não excluem permanentemente informações - em vez disso, atualizam colunas `is_active` e `deleted_at` para presunção de histórico futuro e analítico.
+
+## 🚀 Como Desenvolver
+
+Como o pacote de API faz parte de um Workspace do NPM, normalmente você executará os comandos a partir da **raiz do monorepo**, ou na estrutura individual usando:
 
 ```bash
+# instalar escopo local (Não costuma ser necessário no uso do root npm)
 $ npm install
-```
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
+# Iniciar backend em watch mode (Ideal para desenvolvedores)
 $ npm run start:dev
 
-# production mode
-$ npm run start:prod
+# Limpar TS, buildar main.js final de produção
+$ npm run build
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Para mais informações e comandos integrados, verifique o [`README.md`](../../README.md) principal da raiz do monorepo ou os detalhes de [Arquitetura](../../docs/designs/PROJECT_DESIGN.md).
