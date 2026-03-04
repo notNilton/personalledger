@@ -1,23 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { Goal } from '@project-budget/database';
-
-export interface CreateGoalDto {
-  name: string;
-  targetAmount: number;
-  deadline?: Date;
-  color?: string;
-  icon?: string;
-}
-
-export interface UpdateGoalDto {
-  name?: string;
-  targetAmount?: number;
-  currentAmount?: number;
-  deadline?: Date;
-  color?: string;
-  icon?: string;
-}
+import { Goal, Prisma } from '@project-budget/database';
+import { CreateGoalDto } from './dto/create-goal.dto';
+import { UpdateGoalDto } from './dto/update-goal.dto';
 
 @Injectable()
 export class GoalsService {
@@ -44,7 +29,7 @@ export class GoalsService {
       data: {
         userId,
         name: dto.name,
-        targetAmount: dto.targetAmount as unknown as never,
+        targetAmount: new Prisma.Decimal(dto.targetAmount),
         deadline: dto.deadline,
         color: dto.color,
         icon: dto.icon,
@@ -57,16 +42,18 @@ export class GoalsService {
     return this.db.goal.update({
       where: { id },
       data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.targetAmount !== undefined && {
-          targetAmount: dto.targetAmount as unknown as never,
-        }),
-        ...(dto.currentAmount !== undefined && {
-          currentAmount: dto.currentAmount as unknown as never,
-        }),
-        ...(dto.deadline !== undefined && { deadline: dto.deadline }),
-        ...(dto.color !== undefined && { color: dto.color }),
-        ...(dto.icon !== undefined && { icon: dto.icon }),
+        name: dto.name,
+        targetAmount:
+          dto.targetAmount !== undefined
+            ? new Prisma.Decimal(dto.targetAmount)
+            : undefined,
+        currentAmount:
+          dto.currentAmount !== undefined
+            ? new Prisma.Decimal(dto.currentAmount)
+            : undefined,
+        deadline: dto.deadline,
+        color: dto.color,
+        icon: dto.icon,
       },
     });
   }

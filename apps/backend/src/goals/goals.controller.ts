@@ -8,7 +8,9 @@ import {
   Patch,
   Query,
 } from '@nestjs/common';
-import { GoalsService, CreateGoalDto, UpdateGoalDto } from './goals.service';
+import { GoalsService } from './goals.service';
+import { CreateGoalDto } from './dto/create-goal.dto';
+import { UpdateGoalDto } from './dto/update-goal.dto';
 import { Goal } from '@project-budget/database';
 
 @Controller('goals')
