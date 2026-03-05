@@ -13,9 +13,9 @@ O produto tem a visão futura de se tornar um Hub Financeiro Preditivo, atuando 
 
 O projeto é dividido em diferentes aplicativos e pacotes compartilhados:
 
-- **[`apps/backend`](./apps/backend/README.md)**: API backend principal desenvolvida em **NestJS**. Processa lógica de transações, validação e atua como middleware entre nossos clients e o WorkOS/Database.
-- **`packages/database`**: Agrupamento da fonte de dados base (**Prisma ORM** + PostgreSSQL), tipagens globais inferidas via banco e orquestração de infraestrutura (`docker-compose`).
-- _(Próximos passos)_ **`apps/web`** & **`apps/mobile`**: Nossos clientes em Vite/React e React Native.
+- **[`apps/webapp`](./apps/webapp/README.md)**: Interface web principal desenvolvida com **TanStack Start & React**. Oferece dashboards financeiros, gestão de transações e orçamentos.
+- **[`apps/backend`](./apps/backend/README.md)**: Server-side em **NestJS** que processa a lógica de negócio, integrações e persistência.
+- **[`packages/database`](./packages/database/README.md)**: Camada de persistência unificada com **Prisma ORM** e PostgreSSQL, exportando tipagens para todo o monorepo.
 
 ---
 

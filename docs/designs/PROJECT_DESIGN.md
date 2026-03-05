@@ -4,14 +4,14 @@
 
 # 🗓️ Visão Geral das Fases
 
-| Fase       | Período              | Foco Principal          | Entregáveis Chave                                                              |
-| ---------- | -------------------- | ----------------------- | ------------------------------------------------------------------------------ |
-| **Fase 0** | Pré-MVP (Semana 0-2) | Fundação Técnica        | Infraestrutura, CI/CD, Auth, Schema DB                                         |
-| **Fase 1** | Mês 1-3              | MVP Essencial           | Core de transações, importação OFX/CSV, dashboards básicos                     |
+| Fase       | Período              | Foco Principal          | Entregáveis Chave                                                          |
+| ---------- | -------------------- | ----------------------- | -------------------------------------------------------------------------- |
+| **Fase 0** | Pré-MVP (Semana 0-2) | Fundação Técnica        | Infraestrutura, CI/CD, Auth, Schema DB                                     |
+| **Fase 1** | Mês 1-3              | MVP Essencial           | Core de transações, importação OFX/CSV, dashboards básicos                 |
 | **Fase 2** | Mês 4-6              | Experiência Completa    | Offline-first, cartões inteligentes, orçamentos elásticos, família, webapp |
-| **Fase 3** | Mês 7-12             | Inteligência & Predição | IA/LLMs, Open Finance Premium, forecast, detecção de anomalias                 |
-| **Fase 4** | Ano 2 (Q1-Q2)        | Marketplace & Ativos    | Multimoedas, cripto, comparador de investimentos, monetização por lead         |
-| **Fase 5** | Ano 2 (Q3-Q4)        | Ecossistema B2B2C       | White Label, Módulo Kids, educação financeira gamificada                       |
+| **Fase 3** | Mês 7-12             | Inteligência & Predição | IA/LLMs, Open Finance Premium, forecast, detecção de anomalias             |
+| **Fase 4** | Ano 2 (Q1-Q2)        | Marketplace & Ativos    | Multimoedas, cripto, comparador de investimentos, monetização por lead     |
+| **Fase 5** | Ano 2 (Q3-Q4)        | Ecossistema B2B2C       | White Label, Módulo Kids, educação financeira gamificada                   |
 
 ---
 
@@ -22,9 +22,7 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 ## 0.1. Stack Tecnológica Base
 
 - **Backend:** Nest.js
-- **Frontend Web:** Vite + React (dashboards ricos)
-- **Mobile:** React Native (lançamentos rápidos + push notifications)
-- **webapp:** Vite + React (painel administrativo isolado)
+- **webapp:** TanStack Start + React (Interface principal de gerenciamento)
 - **Banco de Dados:** Prisma ORM + PostgreSQL (tipagem robusta, queries escaláveis) PostgreSQL com arquitetura de **Partidas Dobradas (Double-Entry Bookkeeping)** desde o dia 1:
   - Todo débito possui crédito correspondente
   - Garantia de integridade: `Ativos = Passivos + Patrimônio`
@@ -32,7 +30,7 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 
 ## 0.2. Infraestrutura & Hospedagem
 
-- **Frontend (Web & webapp):** Vercel (deploy automático, ecossistema React/Vite)
+- **webapp:** Vercel/Netlify (TanStack Start)
 - **Backend (NestJS):** Render.com ou Railway (orquestração de containers Node.js + DB gerenciado com backup)
 - **Banco de Dados:** PostgreSQL no Render/Railway ou Neon DB (Serverless Postgres)
 - **Mensageria & Cache:** RabbitMQ ou Redis (para BullMQ) — essencial para filas de importação pesada e cálculos de dashboard (CQRS/Event Sourcing)
@@ -54,8 +52,8 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 
 ## 0.5. Estrutura de Pastas & Monorepo (Opcional)
 
-- Organização inicial dos projetos Web, Mobile, Backend e webapp
-- Configuração de shared types entre frontend e backend via Prisma
+- Organização dos projetos dentro do Monorepo (`apps/webapp`, `apps/backend`, `packages/database`)
+- Configuração de shared types via Prisma
 
 ---
 
@@ -110,19 +108,13 @@ _Core funcional para validação de mercado: registro, importação e visualiza�
 
 ## 1.7. Telas Entregues (User Flow MVP)
 
-### Usuário Final (Web & Mobile)
+### webapp (Funcionalidades Centrais)
 
-- **Onboarding & Auth:** Login, Cadastro, Recuperação de Senha (WorkOS), Setup Inicial
-- **Dashboard (Home):** Resumo mensal, saldo, atalhos, gráfico mini
-- **Transações (Extrato):** Lista com filtros básicos, botão flutuante "Nova Transação"
-- **Contas & Carteiras:** Gerenciamento simples de carteiras e saldos
-- **Orçamentos (Budget):** Definição de limites por categoria + barra de progresso
-- **Configurações:** Edição de perfil, segurança (biometria, modo oculto), exportação básica
-
-### webapp (Admin)
-
-- **Dashboard Admin:** Métricas globais simples (novos usuários, active users)
-- **Gestão de Usuários:** Listagem, status (ativo/inativo/banido), redefinição de senha
+- **Dashboard:** Resumo financeiro, métricas e gráficos.
+- **Transações:** Extrato completo e filtros.
+- **Contas:** Gerenciamento de ativos e passivos.
+- **Budget:** Planejamento de gastos por categorias.
+- **Settings:** Preferências e segurança.
 
 ## 1.8. Funcionalidades Não Incluídas no MVP (Para Fases Seguintes)
 
@@ -251,14 +243,12 @@ _Refinamento da UX, recursos avançados de gestão e trabalho em equipe_
 
 ## 2.12. Telas Adicionais Entregues
 
-### Usuário Final
+### webapp (Recursos Avançados)
 
-- **Metas e Dívidas:** Acompanhamento visual de caixinhas + painel de quitação de empréstimos
-- **Relatórios (Analytics) & Saúde Financeira:** Fluxo de caixa detalhado, Score, gráficos MoM e Net Worth
-- **Grupo Familiar:** Gerenciar parceiros, extratos conjuntos, rateio "quem deve a quem"
-- **Configurações Avançadas:** Gestão de assinatura Premium, conexão futura com Open Finance, exportação IR
-
-### webapp
+- **Metas e Dívidas:** Acompanhamento visual de caixinhas + painel de quitação de empréstimos.
+- **Relatórios (Analytics):** Fluxo de caixa detalhado, Score e Net Worth.
+- **Grupo Familiar:** Gerenciamento de extratos conjuntos.
+- **Gestão de Assinaturas:** Controle de planos Premium.
 
 - **Auditoria & Logs:** Histórico de ações críticas dentro da plataforma para compliance e debugging
 
