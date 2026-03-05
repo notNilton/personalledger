@@ -93,6 +93,11 @@ Para evitar a necessidade de entrar em cada pasta (`cd apps/backend` ou `cd pack
 - `npm run build:backend` - Compila para JS padronizado apenas a nossa aplicação de Backend.
 - `npm run start:prod:backend` - Inicializa a a versão pré-compilada da aplicação.
 
+### 🖥️ Scripts do webapp (`apps/webapp`)
+
+- `npm run dev:webapp` - Inicia o servidor de desenvolvimento do webapp (React Router).
+- `npm run build:webapp` - Compila a aplicação do webapp.
+
 ---
 
 ## 🧱 Padrão e Ferramentas Adicionais

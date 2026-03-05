@@ -25,9 +25,9 @@
     "db:studio": "npm run db:studio --workspace=@project-budget/database",
     "db:docker:up": "npm run docker:up --workspace=@project-budget/database",
     "db:docker:down": "npm run docker:down --workspace=@project-budget/database",
-    "// --- BACKOFFICE ---": "",
-    "build:backoffice": "npm run build --workspace=backoffice",
-    "dev:backoffice": "npm run dev --workspace=backoffice"
+    "// --- webapp ---": "",
+    "build:webapp": "npm run build --workspace=@project-budget/webapp",
+    "dev:webapp": "npm run dev --workspace=@project-budget/webapp"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

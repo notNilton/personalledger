@@ -8,7 +8,7 @@
 | ---------- | -------------------- | ----------------------- | ------------------------------------------------------------------------------ |
 | **Fase 0** | Pré-MVP (Semana 0-2) | Fundação Técnica        | Infraestrutura, CI/CD, Auth, Schema DB                                         |
 | **Fase 1** | Mês 1-3              | MVP Essencial           | Core de transações, importação OFX/CSV, dashboards básicos                     |
-| **Fase 2** | Mês 4-6              | Experiência Completa    | Offline-first, cartões inteligentes, orçamentos elásticos, família, backoffice |
+| **Fase 2** | Mês 4-6              | Experiência Completa    | Offline-first, cartões inteligentes, orçamentos elásticos, família, webapp |
 | **Fase 3** | Mês 7-12             | Inteligência & Predição | IA/LLMs, Open Finance Premium, forecast, detecção de anomalias                 |
 | **Fase 4** | Ano 2 (Q1-Q2)        | Marketplace & Ativos    | Multimoedas, cripto, comparador de investimentos, monetização por lead         |
 | **Fase 5** | Ano 2 (Q3-Q4)        | Ecossistema B2B2C       | White Label, Módulo Kids, educação financeira gamificada                       |
@@ -24,7 +24,7 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 - **Backend:** Nest.js
 - **Frontend Web:** Vite + React (dashboards ricos)
 - **Mobile:** React Native (lançamentos rápidos + push notifications)
-- **Backoffice:** Vite + React (painel administrativo isolado)
+- **webapp:** Vite + React (painel administrativo isolado)
 - **Banco de Dados:** Prisma ORM + PostgreSQL (tipagem robusta, queries escaláveis) PostgreSQL com arquitetura de **Partidas Dobradas (Double-Entry Bookkeeping)** desde o dia 1:
   - Todo débito possui crédito correspondente
   - Garantia de integridade: `Ativos = Passivos + Patrimônio`
@@ -32,7 +32,7 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 
 ## 0.2. Infraestrutura & Hospedagem
 
-- **Frontend (Web & Backoffice):** Vercel (deploy automático, ecossistema React/Vite)
+- **Frontend (Web & webapp):** Vercel (deploy automático, ecossistema React/Vite)
 - **Backend (NestJS):** Render.com ou Railway (orquestração de containers Node.js + DB gerenciado com backup)
 - **Banco de Dados:** PostgreSQL no Render/Railway ou Neon DB (Serverless Postgres)
 - **Mensageria & Cache:** RabbitMQ ou Redis (para BullMQ) — essencial para filas de importação pesada e cálculos de dashboard (CQRS/Event Sourcing)
@@ -54,7 +54,7 @@ _Setup técnico, arquitetura base e pipelines de entrega_
 
 ## 0.5. Estrutura de Pastas & Monorepo (Opcional)
 
-- Organização inicial dos projetos Web, Mobile, Backend e Backoffice
+- Organização inicial dos projetos Web, Mobile, Backend e webapp
 - Configuração de shared types entre frontend e backend via Prisma
 
 ---
@@ -119,7 +119,7 @@ _Core funcional para validação de mercado: registro, importação e visualiza�
 - **Orçamentos (Budget):** Definição de limites por categoria + barra de progresso
 - **Configurações:** Edição de perfil, segurança (biometria, modo oculto), exportação básica
 
-### Backoffice (Admin)
+### webapp (Admin)
 
 - **Dashboard Admin:** Métricas globais simples (novos usuários, active users)
 - **Gestão de Usuários:** Listagem, status (ativo/inativo/banido), redefinição de senha
@@ -237,7 +237,7 @@ _Refinamento da UX, recursos avançados de gestão e trabalho em equipe_
 - **Exportação Otimizada em PDF:**
   - Extratos limpos, com marcação de comprovantes, formato amigável para impressão/compartilhamento
 
-## 2.11. Backoffice Completo
+## 2.11. webapp Completo
 
 - **Gestão de Usuários Avançada:**
   - Listagem com filtros, visualização de perfil detalhado (sem expor dados financeiros sensíveis), bloqueio de conta
@@ -258,7 +258,7 @@ _Refinamento da UX, recursos avançados de gestão e trabalho em equipe_
 - **Grupo Familiar:** Gerenciar parceiros, extratos conjuntos, rateio "quem deve a quem"
 - **Configurações Avançadas:** Gestão de assinatura Premium, conexão futura com Open Finance, exportação IR
 
-### Backoffice
+### webapp
 
 - **Auditoria & Logs:** Histórico de ações críticas dentro da plataforma para compliance e debugging
 
@@ -399,7 +399,7 @@ _Transformação em hub de serviços financeiros com monetização por lead qual
   - Cada sugestão de investimento, portabilidade ou cashback gera potencial receita via parceria
 - **Planos Tiered Premium:**
   - Basic (gratuito), Plus (Open Finance + IA básica), Pro (marketplace + consultoria avançada)
-- **Analytics de Conversão no Backoffice:**
+- **Analytics de Conversão no webapp:**
   - Métricas de clique, conversão e receita por feature de marketplace
 
 ---
@@ -501,7 +501,7 @@ _Expansão do modelo de negócio para além do usuário final direto_
    → Core: Quick Add, Importação OFX/CSV, Lançamentos manuais, Dashboards básicos, Safe-to-Spend, Reconciliação, Segurança básica
 
 3. **Fase 2 (Experiência Completa | Meses 4-6)**  
-   → Offline-first, Cartões inteligentes, Orçamentos elásticos, Família, Backoffice completo, Gamificação básica, Gestão de dívidas, Exportação IR
+   → Offline-first, Cartões inteligentes, Orçamentos elásticos, Família, webapp completo, Gamificação básica, Gestão de dívidas, Exportação IR
 
 4. **Fase 3 (Inteligência | Meses 7-12)**  
    → IA de categorização, Forecast de saldo, Detecção de anomalias, Chatbot consultivo, Open Finance Premium, Vector DB, Micro-tags avançadas
