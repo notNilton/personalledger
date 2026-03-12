@@ -1,39 +1,60 @@
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft, Calendar, Paperclip } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Calendar, Paperclip, Lock } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'create' | 'edit';
+  initialData?: any;
 }
 
-export function TransactionModal({ isOpen, onClose }: TransactionModalProps) {
-  const [type, setType] = useState<'common' | 'fuel'>('common');
-  const [isExpense, setIsExpense] = useState(true);
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+export function TransactionModal({
+  isOpen,
+  onClose,
+  mode = 'create',
+  initialData,
+}: TransactionModalProps) {
+  const isEditing = mode === 'edit';
+  const [type, setType] = useState<'common' | 'fuel'>(
+    initialData?.type === 'fuel' ? 'fuel' : 'common',
+  );
+  const [isExpense, setIsExpense] = useState(initialData ? initialData.val < 0 : true);
+  const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
+  const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl shadow-primary/5 p-8 animate-in zoom-in-95 duration-200">
+      <div className="bg-card border border-border w-full max-w-xl rounded-3xl shadow-2xl shadow-primary/5 p-8 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-xl font-bold font-display tracking-tight">Novo Lançamento</h2>
+            <h2 className="text-xl font-bold font-display tracking-tight">
+              {isEditing ? 'Editar Lançamento' : 'Novo Lançamento'}
+            </h2>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
-              Registro de atividade financeira
+              {isEditing ? 'Atualize os detalhes da transação' : 'Registro de atividade financeira'}
             </p>
           </div>
-          <div className="flex bg-muted p-1 rounded-xl">
+          <div
+            className={`flex bg-muted p-1 rounded-xl relative ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isEditing ? 'O tipo de lançamento não pode ser alterado após a criação' : ''}
+          >
+            {isEditing && (
+              <div className="absolute -top-6 right-0 flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                <Lock className="w-3 h-3" />
+                Bloqueado
+              </div>
+            )}
             <button
               onClick={() => setType('common')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-smooth ${type === 'common' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-smooth ${type === 'common' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} ${isEditing ? 'pointer-events-none' : ''}`}
             >
               Comum
             </button>
             <button
               onClick={() => setType('fuel')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-smooth ${type === 'fuel' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-smooth ${type === 'fuel' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} ${isEditing ? 'pointer-events-none' : ''}`}
             >
               Combustível
             </button>
@@ -48,11 +69,24 @@ export function TransactionModal({ isOpen, onClose }: TransactionModalProps) {
           }}
         >
           {type === 'common' && (
-            <div className="flex gap-2 p-1 bg-muted rounded-2xl mb-2">
+            <div
+              className={`flex gap-2 p-1 bg-muted rounded-2xl mb-2 relative ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title={
+                isEditing
+                  ? 'A categoria (Despesa/Receita) não pode ser alterada após a criação'
+                  : ''
+              }
+            >
+              {isEditing && (
+                <div className="absolute -top-6 right-0 flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <Lock className="w-3 h-3" />
+                  Bloqueado
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => setIsExpense(true)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-smooth ${isExpense ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-muted-foreground hover:bg-muted-foreground/10'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-smooth ${isExpense ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-muted-foreground hover:bg-muted-foreground/10'} ${isEditing ? 'pointer-events-none' : ''}`}
               >
                 <ArrowDownLeft className="w-4 h-4" />
                 Despesa
@@ -60,7 +94,7 @@ export function TransactionModal({ isOpen, onClose }: TransactionModalProps) {
               <button
                 type="button"
                 onClick={() => setIsExpense(false)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-smooth ${!isExpense ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-muted-foreground hover:bg-muted-foreground/10'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-smooth ${!isExpense ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-muted-foreground hover:bg-muted-foreground/10'} ${isEditing ? 'pointer-events-none' : ''}`}
               >
                 <ArrowUpRight className="w-4 h-4" />
                 Receita
@@ -299,7 +333,7 @@ export function TransactionModal({ isOpen, onClose }: TransactionModalProps) {
               type="submit"
               className={`flex-3 px-6 py-3 rounded-2xl text-white font-bold text-sm shadow-lg transition-smooth hover:scale-[1.02] active:scale-95 ${isExpense ? 'bg-rose-500 shadow-rose-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}
             >
-              Salvar {isExpense ? 'Despesa' : 'Receita'}
+              {isEditing ? 'Salvar Alterações' : `Salvar ${isExpense ? 'Despesa' : 'Receita'}`}
             </button>
           </div>
         </form>
