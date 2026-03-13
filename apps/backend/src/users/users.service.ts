@@ -32,6 +32,13 @@ export class UsersService {
     });
   }
 
+  async updatePassword(id: string, passwordHash: string): Promise<User> {
+    return this.db.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+  }
+
   async remove(id: string): Promise<User> {
     await this.findOne(id);
     return this.db.user.delete({ where: { id } });

@@ -8,8 +8,12 @@ import { UpdateBudgetDto } from './dto/update-budget.dto';
 export class BudgetsService {
   constructor(private readonly db: DatabaseService) {}
 
-  findAll(userId: string, year?: number, month?: number): Promise<Budget[]> {
-    return this.db.budget.findMany({
+  async findAll(
+    userId: string,
+    year?: number,
+    month?: number,
+  ): Promise<Budget[]> {
+    const budgets = await this.db.budget.findMany({
       where: {
         userId,
         ...(year && { year }),
@@ -18,6 +22,34 @@ export class BudgetsService {
       include: { category: true },
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
     });
+
+    // Enrich each budget with the real spent amount from transactions
+    const now = new Date();
+    const targetYear = year ?? now.getFullYear();
+    const targetMonth = month ?? now.getMonth() + 1;
+
+    const from = new Date(targetYear, targetMonth - 1, 1);
+    const to = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+
+    return Promise.all(
+      budgets.map(async (budget) => {
+        const aggregate = await this.db.transaction.aggregate({
+          where: {
+            userId,
+            type: 'EXPENSE',
+            isActive: true,
+            categoryId: budget.categoryId ?? undefined,
+            date: { gte: from, lte: to },
+          },
+          _sum: { amount: true },
+        });
+
+        return {
+          ...budget,
+          spent: Number(aggregate._sum.amount ?? 0),
+        } as Budget & { spent: number };
+      }),
+    );
   }
 
   async findOne(id: string, userId: string): Promise<Budget> {
