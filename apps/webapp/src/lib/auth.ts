@@ -1,19 +1,32 @@
-export const AUTH_TOKEN_KEY = 'auth_token';
+export const AUTH_TOKEN_KEY = 'pagway_auth_token';
 
 export const auth = {
-  getToken: () => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+  getToken: (): string | null => {
+    try {
+      return localStorage.getItem(AUTH_TOKEN_KEY);
+    } catch {
+      return null;
+    }
   },
-  setToken: (token: string) => {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
+
+  setToken: (token: string): void => {
+    try {
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+    } catch {
+      // ignore
+    }
   },
-  logout: () => {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    // Redireciona para o login forçando um reload para limpar estados em memória
+
+  logout: (): void => {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+    } catch {
+      // ignore
+    }
     window.location.href = '/login';
   },
-  isAuthenticated: () => {
+
+  isAuthenticated: (): boolean => {
     return !!auth.getToken();
   },
 };
