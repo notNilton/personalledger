@@ -11,7 +11,5 @@
   "routerOnly": false,
   "version": 1,
   "framework": "react",
-  "chosenAddOns": [
-    "events"
-  ]
+  "chosenAddOns": ["events"]
 }

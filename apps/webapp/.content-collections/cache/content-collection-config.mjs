@@ -1,8 +1,6 @@
 // content-collections.ts
-import { defineConfig } from "@content-collections/core";
+import { defineConfig } from '@content-collections/core';
 var content_collections_default = defineConfig({
-  collections: []
+  collections: [],
 });
-export {
-  content_collections_default as default
-};
+export { content_collections_default as default };

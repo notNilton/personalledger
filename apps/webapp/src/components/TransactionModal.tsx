@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, ArrowDownLeft, Calendar, Paperclip, Lock, X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -10,6 +10,11 @@ interface Category {
 }
 
 interface Account {
+  id: string;
+  name: string;
+}
+
+interface Vehicle {
   id: string;
   name: string;
 }
@@ -35,6 +40,11 @@ interface Transaction {
   accountId?: string;
   category?: Category;
   account?: Account;
+  vehicleId?: string;
+  currentKm?: number;
+  liters?: number;
+  pricePerLiter?: number;
+  fuelType?: string;
 }
 
 export function TransactionModal({
@@ -54,11 +64,20 @@ export function TransactionModal({
   );
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [amount, setAmount] = useState(
-    initialData ? String(Math.abs(Number(initialData.amount))) : '',
+    initialData ? Math.floor(Math.abs(Number(initialData.amount)) * 100).toString() : '0',
   );
   const [notes, setNotes] = useState(initialData?.notes ?? '');
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? '');
   const [accountId, setAccountId] = useState(initialData?.accountId ?? '');
+
+  // Fuel specific state
+  const [classification, setClassification] = useState(initialData?.classification ?? 'COMMON');
+  const [vehicleId, setVehicleId] = useState(initialData?.vehicleId ?? '');
+  const [currentKm, setCurrentKm] = useState(initialData?.currentKm?.toString() ?? '0');
+  const [liters, setLiters] = useState(
+    initialData?.liters ? Math.floor(initialData.liters * 1000).toString() : '0',
+  );
+  const [fuelType, setFuelType] = useState(initialData?.fuelType ?? 'GASOLINA_COMUM');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,23 +96,78 @@ export function TransactionModal({
     enabled: isOpen,
   });
 
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => api.get<Vehicle[]>('/vehicles'),
+    staleTime: 1000 * 60 * 5,
+    enabled: isOpen && classification === 'FUEL',
+  });
+
+  // Automatically find Refueling category if not set and classification is FUEL
+  useEffect(() => {
+    if (classification === 'FUEL' && !categoryId && categories.length > 0) {
+      const fuelCat = categories.find((c) => c.name.toLowerCase().includes('abastecimento'));
+      if (fuelCat) setCategoryId(fuelCat.id);
+    }
+  }, [classification, categories, categoryId]);
+
   if (!isOpen) return null;
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    setAmount(value);
+  };
+
+  const formattedAmount = (Number(amount) / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+
+  // KM formatting (e.g., 160.148)
+  const handleKmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    setCurrentKm(value);
+  };
+
+  const formattedKm = Number(currentKm).toLocaleString('pt-BR');
+
+  // Liters formatting (3 decimal places, e.g., 45,234)
+  const handleLitersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    setLiters(value);
+  };
+
+  const formattedLiters = (Number(liters) / 1000).toLocaleString('pt-BR', {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
+    const actualAmount = Number(amount) / 100;
+    const actualLiters = Number(liters) / 1000;
+
     try {
       const payload = {
-        description,
-        amount: Number(amount),
+        description: classification === 'FUEL' ? 'Abastecimento' : description,
+        amount: actualAmount,
         date,
         type: isExpense ? 'EXPENSE' : 'INCOME',
-        isRecurring,
+        isRecurring: classification === 'FUEL' ? false : isRecurring,
         notes: notes || undefined,
         categoryId: categoryId || undefined,
         accountId,
+        classification,
+        ...(classification === 'FUEL' && {
+          vehicleId,
+          currentKm: Number(currentKm),
+          liters: actualLiters,
+          pricePerLiter: actualLiters > 0 ? actualAmount / actualLiters : 0,
+          fuelType,
+        }),
       };
 
       if (isEditing && initialData) {
@@ -110,6 +184,8 @@ export function TransactionModal({
       setIsLoading(false);
     }
   };
+
+  const isFuel = classification === 'FUEL';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -160,45 +236,67 @@ export function TransactionModal({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Description */}
-            <div className="col-span-2">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block">
-                  Descrição
-                </label>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 transition-smooth"
-                >
-                  <Paperclip className="w-3 h-3" />
-                  Anexar
-                </button>
-              </div>
-              <input
-                required
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Salário Mensal"
-                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-              />
+          {isExpense && (
+            <div className="flex gap-2 p-1 bg-muted rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setClassification('COMMON')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-smooth ${classification === 'COMMON' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
+              >
+                Comum
+              </button>
+              <button
+                type="button"
+                onClick={() => setClassification('FUEL')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-smooth ${classification === 'FUEL' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
+              >
+                Abastecimento
+              </button>
             </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Description - Hidden for Fuel */}
+            {!isFuel && (
+              <div className="col-span-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block">
+                    Descrição
+                  </label>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 transition-smooth"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                    Anexar
+                  </button>
+                </div>
+                <input
+                  required
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Ex: Salário Mensal"
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                />
+              </div>
+            )}
 
             {/* Amount */}
-            <div>
+            <div className={isFuel ? 'col-span-1' : 'col-span-1'}>
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                Valor (R$)
+                Valor Total
               </label>
-              <input
-                required
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className={`w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 outline-none transition-smooth ${isExpense ? 'text-rose-500 focus:ring-rose-500/20' : 'text-emerald-500 focus:ring-emerald-500/20'}`}
-              />
+              <div className="relative">
+                <input
+                  required
+                  type="text"
+                  inputMode="numeric"
+                  value={formattedAmount}
+                  onChange={handleAmountChange}
+                  className={`w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 outline-none transition-smooth ${isExpense ? 'text-rose-500 focus:ring-rose-500/20' : 'text-emerald-500 focus:ring-emerald-500/20'}`}
+                />
+              </div>
             </div>
 
             {/* Date */}
@@ -215,29 +313,31 @@ export function TransactionModal({
               />
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                Categoria
-              </label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth appearance-none"
-              >
-                <option value="">Sem categoria</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Category - Hidden for Fuel */}
+            {!isFuel && (
+              <div>
+                <label className="text-[10px) font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                  Categoria
+                </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth appearance-none"
+                >
+                  <option value="">Sem categoria</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Account */}
-            <div>
+            <div className="col-span-1">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                Conta
+                Pagamento via
               </label>
               <select
                 required
@@ -254,27 +354,111 @@ export function TransactionModal({
               </select>
             </div>
 
-            {/* Recurring */}
-            <div className="col-span-2 pt-1">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={isRecurring}
-                  onChange={(e) => setIsRecurring(e.target.checked)}
-                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 transition-smooth"
-                />
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest group-hover:text-foreground transition-smooth">
-                    Lançamento Recorrente
-                  </span>
-                  <p className="text-[10px] text-muted-foreground">
-                    Repetir automaticamente todos os meses
-                  </p>
-                </div>
-              </label>
-            </div>
+            {/* Fuel Specific Fields integrated */}
+            {isFuel && (
+              <>
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                      Veículo
+                    </label>
+                    <select
+                      required={isFuel}
+                      value={vehicleId}
+                      onChange={(e) => setVehicleId(e.target.value)}
+                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none transition-smooth"
+                    >
+                      <option value="">Selecione</option>
+                      {vehicles.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-            {isRecurring && date && (
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                      Tipo de Combustível
+                    </label>
+                    <select
+                      value={fuelType}
+                      onChange={(e) => setFuelType(e.target.value)}
+                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none transition-smooth"
+                    >
+                      <option value="GASOLINA_COMUM">Gasolina Comum</option>
+                      <option value="GASOLINA_ADITIVADA">Gasolina Aditivada</option>
+                      <option value="ETANOL">Etanol</option>
+                      <option value="DIESEL">Diesel</option>
+                      <option value="GNV">GNV</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                      Odômetro (KM)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formattedKm}
+                      onChange={handleKmChange}
+                      placeholder="Ex: 160.148"
+                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                      Litros
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={formattedLiters}
+                        onChange={handleLitersChange}
+                        placeholder="Ex: 45,234"
+                        className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                      />
+                      {Number(liters) > 0 && Number(amount) > 0 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary">
+                          {(Number(amount) / 100 / (Number(liters) / 1000)).toLocaleString(
+                            'pt-BR',
+                            { style: 'currency', currency: 'BRL' },
+                          )}
+                          /L
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Show Recurring only for Common */}
+            {!isFuel && (
+              <div className="col-span-2 pt-1">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 transition-smooth"
+                  />
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-widest group-hover:text-foreground transition-smooth">
+                      Lançamento Recorrente
+                    </span>
+                    <p className="text-[10px] text-muted-foreground">
+                      Repetir automaticamente todos os meses
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {!isFuel && isRecurring && date && (
               <div className="col-span-2 animate-in slide-in-from-top-2 duration-200 bg-primary/5 border border-primary/10 p-3 rounded-xl flex items-center gap-3 font-medium">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                   <Calendar className="w-4 h-4" />
@@ -293,7 +477,7 @@ export function TransactionModal({
               </div>
             )}
 
-            {/* Notes */}
+            {/* Notes / Observações */}
             <div className="col-span-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
                 Observações
@@ -302,7 +486,7 @@ export function TransactionModal({
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notas adicionais..."
+                placeholder="Ex: Posto Ipiranga do centro..."
                 className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth resize-none"
               />
             </div>
@@ -331,7 +515,9 @@ export function TransactionModal({
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  {isEditing ? 'Salvar Alterações' : `Salvar ${isExpense ? 'Despesa' : 'Receita'}`}
+                  {isEditing
+                    ? 'Salvar Alterações'
+                    : `Confirmar ${isFuel ? 'Abastecimento' : isExpense ? 'Despesa' : 'Receita'}`}
                 </>
               )}
             </button>

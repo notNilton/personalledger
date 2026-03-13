@@ -47,6 +47,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   component: RootDocument,
+  notFoundComponent: () => (
+    <div className="flex flex-col items-center justify-center p-20 gap-4">
+      <h2 className="text-2xl font-bold">Página não encontrada</h2>
+      <p className="text-muted-foreground">Ops! O caminho que você tentou acessar não existe.</p>
+      <a href="/" className="text-primary font-bold hover:underline">
+        Voltar para o início
+      </a>
+    </div>
+  ),
 });
 
 function RootDocument() {

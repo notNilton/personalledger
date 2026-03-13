@@ -1,6 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { User, Shield, ChevronRight, LogOut, type LucideIcon } from 'lucide-react';
+import {
+  User,
+  Shield,
+  ChevronRight,
+  LogOut,
+  CarFront,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 import { api } from '../../lib/api';
 import { auth } from '../../lib/auth';
 
@@ -123,6 +131,18 @@ function SettingsPage() {
             to="/settings/data-privacy"
             title="Privacidade e Dados"
             description="Controle de dados e configurações de privacidade."
+          />
+          <SettingItem
+            icon={CarFront}
+            to="/settings/vehicles"
+            title="Gerenciar Frota"
+            description="Cadastre seus veículos e acompanhe o consumo."
+          />
+          <SettingItem
+            icon={Wallet}
+            to="/settings/accounts"
+            title="Gerenciar Contas Bancárias"
+            description="Gerencie seus saldos e instituições financeiras."
           />
         </div>
       </div>
