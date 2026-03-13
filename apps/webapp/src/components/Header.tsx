@@ -1,7 +1,17 @@
 import { Link } from '@tanstack/react-router';
-import { CircleDollarSign, Eye, EyeOff, Settings, LayoutGrid, Activity, Zap } from 'lucide-react';
+import {
+  CircleDollarSign,
+  Eye,
+  EyeOff,
+  LayoutGrid,
+  Activity,
+  Zap,
+  LogOut,
+  User,
+} from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { usePrivacy } from '../lib/privacy';
+import { auth } from '../lib/auth';
 
 export default function Header() {
   const { privacyMode, togglePrivacy } = usePrivacy();
@@ -58,14 +68,22 @@ export default function Header() {
           >
             {privacyMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
+          <ThemeToggle />
+          <div className="w-[1px] h-4 bg-border mx-1" />
           <Link
             to="/settings"
             className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-smooth"
-            title="Configurações"
+            title="Perfil"
           >
-            <Settings className="w-5 h-5" />
+            <User className="w-5 h-5" />
           </Link>
-          <ThemeToggle />
+          <button
+            onClick={() => auth.logout()}
+            className="p-2 rounded-xl text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-smooth"
+            title="Sair"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </nav>
     </header>

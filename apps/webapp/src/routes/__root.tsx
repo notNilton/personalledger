@@ -1,40 +1,58 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router';
+import {
+  HeadContent,
+  Scripts,
+  createRootRoute,
+  redirect,
+  Outlet,
+  useLocation,
+} from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import { PrivacyProvider } from '../lib/privacy';
 import QuickAddFAB from '../components/QuickAddFAB';
+import { auth } from '../lib/auth';
 
 import appCss from '../styles.css?url';
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
 
 export const Route = createRootRoute({
+  beforeLoad: ({ location }) => {
+    const isPublic = ['/login', '/register'].includes(location.pathname);
+    const isAuthenticated = auth.isAuthenticated();
+
+    if (!isAuthenticated && !isPublic) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+
+    if (isAuthenticated && location.pathname === '/login') {
+      throw redirect({
+        to: '/',
+      });
+    }
+  },
   head: () => ({
     meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'BudgetWise',
-      },
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'BudgetWise' },
     ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-    ],
+    links: [{ rel: 'stylesheet', href: appCss }],
   }),
-  shellComponent: RootDocument,
+  component: RootDocument,
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument() {
+  const location = useLocation();
+  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -43,14 +61,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
         <PrivacyProvider>
-          <Header />
-          {children}
-          <Footer />
-          <QuickAddFAB />
+          {!isAuthPage && <Header />}
+          <main>
+            <Outlet />
+          </main>
+          {!isAuthPage && <Footer />}
+          {!isAuthPage && <QuickAddFAB />}
+
           <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
+            config={{ position: 'bottom-right' }}
             plugins={[
               {
                 name: 'Tanstack Router',

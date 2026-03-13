@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VehiclesRouteImport } from './routes/vehicles'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as MoreRouteImport } from './routes/more'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as EvolutionRouteImport } from './routes/evolution'
@@ -38,9 +40,19 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MoreRoute = MoreRouteImport.update({
   id: '/more',
   path: '/more',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportRoute = ImportRouteImport.update({
@@ -96,7 +108,9 @@ export interface FileRoutesByFullPath {
   '/evolution': typeof EvolutionRoute
   '/goals': typeof GoalsRoute
   '/import': typeof ImportRoute
+  '/login': typeof LoginRoute
   '/more': typeof MoreRoute
+  '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/vehicles': typeof VehiclesRoute
@@ -111,7 +125,9 @@ export interface FileRoutesByTo {
   '/evolution': typeof EvolutionRoute
   '/goals': typeof GoalsRoute
   '/import': typeof ImportRoute
+  '/login': typeof LoginRoute
   '/more': typeof MoreRoute
+  '/register': typeof RegisterRoute
   '/transactions': typeof TransactionsRoute
   '/vehicles': typeof VehiclesRoute
   '/settings/data-privacy': typeof SettingsDataPrivacyRoute
@@ -126,7 +142,9 @@ export interface FileRoutesById {
   '/evolution': typeof EvolutionRoute
   '/goals': typeof GoalsRoute
   '/import': typeof ImportRoute
+  '/login': typeof LoginRoute
   '/more': typeof MoreRoute
+  '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
   '/transactions': typeof TransactionsRoute
   '/vehicles': typeof VehiclesRoute
@@ -143,7 +161,9 @@ export interface FileRouteTypes {
     | '/evolution'
     | '/goals'
     | '/import'
+    | '/login'
     | '/more'
+    | '/register'
     | '/settings'
     | '/transactions'
     | '/vehicles'
@@ -158,7 +178,9 @@ export interface FileRouteTypes {
     | '/evolution'
     | '/goals'
     | '/import'
+    | '/login'
     | '/more'
+    | '/register'
     | '/transactions'
     | '/vehicles'
     | '/settings/data-privacy'
@@ -172,7 +194,9 @@ export interface FileRouteTypes {
     | '/evolution'
     | '/goals'
     | '/import'
+    | '/login'
     | '/more'
+    | '/register'
     | '/settings'
     | '/transactions'
     | '/vehicles'
@@ -188,7 +212,9 @@ export interface RootRouteChildren {
   EvolutionRoute: typeof EvolutionRoute
   GoalsRoute: typeof GoalsRoute
   ImportRoute: typeof ImportRoute
+  LoginRoute: typeof LoginRoute
   MoreRoute: typeof MoreRoute
+  RegisterRoute: typeof RegisterRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   TransactionsRoute: typeof TransactionsRoute
   VehiclesRoute: typeof VehiclesRoute
@@ -217,11 +243,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/more': {
       id: '/more'
       path: '/more'
       fullPath: '/more'
       preLoaderRoute: typeof MoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -313,7 +353,9 @@ const rootRouteChildren: RootRouteChildren = {
   EvolutionRoute: EvolutionRoute,
   GoalsRoute: GoalsRoute,
   ImportRoute: ImportRoute,
+  LoginRoute: LoginRoute,
   MoreRoute: MoreRoute,
+  RegisterRoute: RegisterRoute,
   SettingsRoute: SettingsRouteWithChildren,
   TransactionsRoute: TransactionsRoute,
   VehiclesRoute: VehiclesRoute,
