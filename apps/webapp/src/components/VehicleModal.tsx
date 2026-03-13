@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, CarFront, Hash, Calendar, Fuel } from 'lucide-react';
 import { api } from '../lib/api';
+import { SUPPORTED_BRANDS, getBrandIcon } from '../lib/vehicle-brands';
 
 interface Vehicle {
   id: string;
   name: string;
   licensePlate?: string;
-  make?: string;
+  brand?: string;
   model?: string;
   year?: number;
   tank?: number;
@@ -30,13 +31,26 @@ export function VehicleModal({
   const isEditing = mode === 'edit';
   const [name, setName] = useState(initialData?.name ?? '');
   const [licensePlate, setLicensePlate] = useState(initialData?.licensePlate ?? '');
-  const [make, setMake] = useState(initialData?.make ?? '');
+  const [brand, setBrand] = useState(initialData?.brand ?? '');
   const [model, setModel] = useState(initialData?.model ?? '');
   const [year, setYear] = useState(initialData?.year?.toString() ?? '');
   const [tank, setTank] = useState(initialData?.tank?.toString() ?? '50');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync state with initialData when it changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setName(initialData?.name ?? '');
+      setLicensePlate(initialData?.licensePlate ?? '');
+      setBrand(initialData?.brand ?? '');
+      setModel(initialData?.model ?? '');
+      setYear(initialData?.year?.toString() ?? '');
+      setTank(initialData?.tank?.toString() ?? '50');
+      setError(null);
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -49,7 +63,7 @@ export function VehicleModal({
       const payload = {
         name,
         licensePlate: licensePlate || undefined,
-        make: make || undefined,
+        brand: brand || undefined,
         model: model || undefined,
         year: year ? Number(year) : undefined,
         tank: tank ? Number(tank) : 50,
@@ -147,18 +161,24 @@ export function VehicleModal({
               </div>
             </div>
 
-            {/* Make */}
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+            {/* Brand */}
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-2">
                 Marca
+                {brand && <img src={getBrandIcon(brand)} className="w-3 h-3 grayscale" alt="" />}
               </label>
-              <input
-                type="text"
-                value={make}
-                onChange={(e) => setMake(e.target.value)}
-                placeholder="Ex: Toyota"
-                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-              />
+              <select
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth appearance-none"
+              >
+                <option value="">Outra / Não informada</option>
+                {SUPPORTED_BRANDS.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Model */}

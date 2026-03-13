@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, ArrowDownLeft, Calendar, Paperclip, Lock, X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { getBrandIcon } from '../lib/vehicle-brands';
 
 interface Category {
   id: string;
@@ -17,6 +18,7 @@ interface Account {
 interface Vehicle {
   id: string;
   name: string;
+  brand?: string;
 }
 
 interface TransactionModalProps {
@@ -394,19 +396,31 @@ export function TransactionModal({
                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
                       Veículo
                     </label>
-                    <select
-                      required={isFuel}
-                      value={vehicleId}
-                      onChange={(e) => setVehicleId(e.target.value)}
-                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none transition-smooth"
-                    >
-                      <option value="">Selecione</option>
-                      {vehicles.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        required={isFuel}
+                        value={vehicleId}
+                        onChange={(e) => setVehicleId(e.target.value)}
+                        className="w-full bg-muted/40 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none transition-smooth"
+                      >
+                        <option value="">Selecione</option>
+                        {vehicles.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name}
+                          </option>
+                        ))}
+                      </select>
+                      {vehicleId && (
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                          <img
+                            src={getBrandIcon(vehicles.find((v) => v.id === vehicleId)?.brand)}
+                            className="w-4 h-4 grayscale opacity-70"
+                            alt=""
+                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>

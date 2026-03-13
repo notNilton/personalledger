@@ -52,7 +52,7 @@ interface Goal {
 interface Vehicle {
   id: string;
   nickname?: string;
-  make: string;
+  brand: string;
   model: string;
   licensePlate?: string;
 }
@@ -435,7 +435,7 @@ function EvolutionPage() {
                     >
                       {vehicles.map((v) => (
                         <option key={v.id} value={v.id}>
-                          {v.nickname ?? `${v.make} ${v.model}`}
+                          {v.nickname ?? `${v.brand} ${v.model}`}
                           {v.licensePlate ? ` (${v.licensePlate})` : ''}
                         </option>
                       ))}
@@ -580,7 +580,7 @@ function EvolutionPage() {
                             })}
                           </td>
                           <td className="px-6 py-4 text-sm font-medium">
-                            {h.station ?? activeVehicle?.make ?? '—'}
+                            {h.station ?? activeVehicle?.brand ?? '—'}
                           </td>
                           <td className="px-6 py-4 text-sm text-muted-foreground">
                             {Number(h.fuelLiters).toFixed(2)}L

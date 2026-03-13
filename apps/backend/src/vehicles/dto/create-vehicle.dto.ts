@@ -21,7 +21,7 @@ export class CreateVehicleDto {
   @IsString()
   @IsOptional()
   @MaxLength(50)
-  make?: string;
+  brand?: string;
 
   @IsString()
   @IsOptional()

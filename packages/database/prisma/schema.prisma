@@ -359,7 +359,7 @@ model Vehicle {
 
     name         String  @db.VarChar(100)
     licensePlate String? @map("license_plate") @db.VarChar(10)
-    make         String? @db.VarChar(50)
+    brand        String? @db.VarChar(50)
     model        String? @db.VarChar(50)
     year         Int?
     tank         Decimal @default(50.00) @map("tank") @db.Decimal(10, 2)
