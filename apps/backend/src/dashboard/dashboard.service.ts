@@ -14,7 +14,7 @@ export class DashboardService {
 
     // 1. Get Accounts
     const accounts = await this.db.account.findMany({
-      where: { userId },
+      where: { userId, isActive: true },
     });
 
     const totalBalance = accounts.reduce(
@@ -26,6 +26,7 @@ export class DashboardService {
     const monthlyTransactions = await this.db.transaction.findMany({
       where: {
         userId,
+        isActive: true,
         date: {
           gte: monthStart,
           lte: monthEnd,
@@ -48,7 +49,7 @@ export class DashboardService {
 
     // 3. Recent Transactions
     const recentTransactions = await this.db.transaction.findMany({
-      where: { userId },
+      where: { userId, isActive: true },
       orderBy: { date: 'desc' },
       take: 5,
       include: {
@@ -74,6 +75,7 @@ export class DashboardService {
         const spent = await this.db.transaction.aggregate({
           where: {
             userId,
+            isActive: true,
             categoryId: budget.categoryId,
             type: TransactionType.EXPENSE,
             date: {
@@ -110,6 +112,7 @@ export class DashboardService {
         const dayTransactions = await this.db.transaction.aggregate({
           where: {
             userId,
+            isActive: true,
             date: {
               gte: date,
               lte: dayEnd,
