@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PrivacyAmount from '../components/PrivacyAmount';
 import { TransactionModal } from '../components/TransactionModal';
+import { api } from '../lib/api';
 import {
   Plus,
   Search,
@@ -12,123 +14,99 @@ import {
   CreditCard,
   FileUp,
   Edit2,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 
 export const Route = createFileRoute('/transactions')({
   component: TransactionsPage,
 });
 
-const INITIAL_TRANSACTIONS = [
-  {
-    date: '2026-03-12',
-    desc: 'Supermercado Silva',
-    cat: 'Alimentação',
-    account: 'Nubank',
-    val: -184.5,
-    type: 'expense',
-  },
-  {
-    date: '2026-03-10',
-    desc: 'Salário Março',
-    cat: 'Renda',
-    account: 'Itaú',
-    val: 5200.0,
-    type: 'income',
-  },
-  {
-    date: '2026-03-08',
-    desc: 'Posto Shell Jabaquara',
-    cat: 'Transporte',
-    account: 'PicPay',
-    val: -220.0,
-    type: 'expense',
-  },
-  {
-    date: '2026-03-05',
-    desc: 'Assinatura Netflix',
-    cat: 'Lazer',
-    account: 'Nubank',
-    val: -55.9,
-    type: 'expense',
-  },
-  {
-    date: '2026-03-02',
-    desc: 'Academia Bluefit',
-    cat: 'Saúde',
-    account: 'Nubank',
-    val: -129.9,
-    type: 'expense',
-  },
-  {
-    date: '2026-02-28',
-    desc: 'Aluguel Apartamento',
-    cat: 'Moradia',
-    account: 'Itaú',
-    val: -2100.0,
-    type: 'expense',
-  },
-  {
-    date: '2026-02-25',
-    desc: 'Transferência Recebida',
-    cat: 'Outros',
-    account: 'Nubank',
-    val: 150.0,
-    type: 'income',
-  },
-  {
-    date: '2026-02-20',
-    desc: 'Restaurante Coco Bambu',
-    cat: 'Lazer',
-    account: 'Nubank',
-    val: -340.0,
-    type: 'expense',
-  },
-  {
-    date: '2026-02-15',
-    desc: 'Internet Vivo Fibra',
-    cat: 'Moradia',
-    account: 'Itaú',
-    val: -120.0,
-    type: 'expense',
-  },
-  {
-    date: '2026-02-10',
-    desc: 'Freelance Design',
-    cat: 'Renda',
-    account: 'Nubank',
-    val: 1200.0,
-    type: 'income',
-  },
-  {
-    date: '2026-02-05',
-    desc: 'Farmácia Drogasil',
-    cat: 'Saúde',
-    account: 'PicPay',
-    val: -85.2,
-    type: 'expense',
-  },
-  {
-    date: '2026-01-30',
-    desc: 'Uber Viagens',
-    cat: 'Transporte',
-    account: 'Nubank',
-    val: -45.6,
-    type: 'expense',
-  },
-];
+interface Category {
+  id: string;
+  name: string;
+  icon?: string;
+}
 
-const CATEGORIES = ['Alimentação', 'Lazer', 'Transporte', 'Moradia', 'Saúde', 'Renda', 'Outros'];
+interface Account {
+  id: string;
+  name: string;
+}
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number | string;
+  date: string;
+  type: 'INCOME' | 'EXPENSE';
+  classification?: string;
+  isRecurring?: boolean;
+  notes?: string;
+  categoryId?: string;
+  accountId?: string;
+  category?: Category;
+  account?: Account;
+}
 
 function TransactionsPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
-  const [filterRange, setFilterRange] = useState<'month' | 'custom'>('month');
+  const [filterType, setFilterType] = useState<'all' | 'INCOME' | 'EXPENSE'>('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [filterRange, setFilterRange] = useState<'month' | 'custom'>('month');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  // Build query params for transactions
+  const transactionParams = useCallback(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (filterType !== 'all') params.set('type', filterType);
+    if (selectedCategory !== 'all') params.set('categoryId', selectedCategory);
+    if (filterRange === 'month') {
+      const now = new Date();
+      params.set('from', new Date(now.getFullYear(), now.getMonth(), 1).toISOString());
+      params.set('to', new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString());
+    } else {
+      if (startDate) params.set('from', startDate);
+      if (endDate) params.set('to', endDate);
+    }
+    params.set('limit', '50');
+    return params.toString();
+  }, [search, filterType, selectedCategory, filterRange, startDate, endDate]);
+
+  // Queries
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: [
+      'transactions',
+      search,
+      filterType,
+      selectedCategory,
+      filterRange,
+      startDate,
+      endDate,
+    ],
+    queryFn: () => api.get<Transaction[]>(`/transactions?${transactionParams()}`),
+    staleTime: 1000 * 30,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.get<Category[]>('/categories'),
+    staleTime: 1000 * 60 * 5, // 5 min — categorias mudam raramente
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/transactions/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
 
   const handleCreate = () => {
     setModalMode('create');
@@ -136,38 +114,25 @@ function TransactionsPage() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (transaction: any) => {
+  const handleEdit = (transaction: Transaction) => {
     setModalMode('edit');
     setEditingTransaction(transaction);
     setIsModalOpen(true);
   };
 
-  const filteredTransactions = useMemo(() => {
-    const today = new Date('2026-03-12');
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+  const handleDelete = (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
+    deleteMutation.mutate(id);
+  };
 
-    return INITIAL_TRANSACTIONS.filter((t) => {
-      const transDate = new Date(t.date);
-
-      const matchesSearch = t.desc.toLowerCase().includes(search.toLowerCase());
-      const matchesType = filterType === 'all' || t.type === filterType;
-      const matchesCategory = selectedCategory === 'all' || t.cat === selectedCategory;
-
-      let matchesDate = true;
-      if (filterRange === 'month') {
-        matchesDate = transDate >= thirtyDaysAgo && transDate <= today;
-      } else if (filterRange === 'custom') {
-        if (startDate) matchesDate = matchesDate && transDate >= new Date(startDate);
-        if (endDate) matchesDate = matchesDate && transDate <= new Date(endDate);
-      }
-
-      return matchesSearch && matchesType && matchesCategory && matchesDate;
-    });
-  }, [search, filterType, filterRange, selectedCategory, startDate, endDate]);
+  const handleModalSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold">Atividade</h1>
@@ -188,7 +153,7 @@ function TransactionsPage() {
         </div>
       </div>
 
-      {/* Filters & Search */}
+      {/* Filters */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex gap-2">
           <div className="relative">
@@ -198,27 +163,27 @@ function TransactionsPage() {
               placeholder="Buscar por descrição..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none w-[300px]"
+              className="pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none w-[260px]"
             />
           </div>
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value as any)}
-            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-sm font-medium hover:bg-muted transition-smooth outline-none cursor-pointer"
+            onChange={(e) => setFilterType(e.target.value as 'all' | 'INCOME' | 'EXPENSE')}
+            className="px-4 py-2 bg-card border border-border rounded-xl text-sm font-medium hover:bg-muted transition-smooth outline-none cursor-pointer"
           >
-            <option value="all">Tipos</option>
-            <option value="income">Entradas</option>
-            <option value="expense">Saídas</option>
+            <option value="all">Todos os Tipos</option>
+            <option value="INCOME">Entradas</option>
+            <option value="EXPENSE">Saídas</option>
           </select>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-sm font-medium hover:bg-muted transition-smooth outline-none cursor-pointer"
+            className="px-4 py-2 bg-card border border-border rounded-xl text-sm font-medium hover:bg-muted transition-smooth outline-none cursor-pointer"
           >
             <option value="all">Todas as Categorias</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.icon} {cat.name}
               </option>
             ))}
           </select>
@@ -228,7 +193,7 @@ function TransactionsPage() {
             onClick={() => setFilterRange('month')}
             className={`px-4 py-2 text-xs font-bold rounded-lg uppercase tracking-wider transition-smooth ${filterRange === 'month' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
           >
-            Últimos 30 dias
+            Este mês
           </button>
           <button
             onClick={() => setFilterRange('custom')}
@@ -266,7 +231,7 @@ function TransactionsPage() {
         </div>
       )}
 
-      {/* Transactions List */}
+      {/* Table */}
       <div className="card-premium overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -289,57 +254,105 @@ function TransactionsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredTransactions.map((t, i) => (
-              <tr key={i} className="hover:bg-muted/20 transition-smooth group cursor-pointer">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                    {new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </div>
-                </td>
-                <td className="px-6 py-4 font-medium text-sm">{t.desc}</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider border border-primary/10">
-                    <Tag className="w-3 h-3" />
-                    {t.cat}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                    <CreditCard className="w-3.5 h-3.5" />
-                    {t.account}
-                  </div>
-                </td>
-                <td
-                  className={`px-6 py-4 text-right font-bold text-sm ${t.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}
-                >
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(t);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-smooth"
-                      title="Editar Transação"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <div className="flex items-center">
-                      {t.type === 'income' ? (
-                        <ArrowUpRight className="inline w-3 h-3 mr-1" />
-                      ) : (
-                        <ArrowDownLeft className="inline w-3 h-3 mr-1" />
-                      )}
-                      <PrivacyAmount value={t.val} />
-                    </div>
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Carregando transações...</p>
                   </div>
                 </td>
               </tr>
-            ))}
+            ) : transactions.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-16 text-center">
+                  <p className="text-sm text-muted-foreground">Nenhuma transação encontrada.</p>
+                  <button
+                    onClick={handleCreate}
+                    className="mt-3 text-xs font-bold text-primary hover:underline"
+                  >
+                    + Adicionar a primeira transação
+                  </button>
+                </td>
+              </tr>
+            ) : (
+              transactions.map((t) => {
+                const isIncome = t.type === 'INCOME';
+                const value = Math.abs(Number(t.amount));
+                return (
+                  <tr
+                    key={t.id}
+                    className="hover:bg-muted/20 transition-smooth group cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                        {new Date(t.date).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          timeZone: 'UTC',
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-sm">{t.description}</td>
+                    <td className="px-6 py-4">
+                      {t.category ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider border border-primary/10">
+                          <Tag className="w-3 h-3" />
+                          {t.category.name}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+                        <CreditCard className="w-3.5 h-3.5" />
+                        {t.account?.name ?? '—'}
+                      </div>
+                    </td>
+                    <td
+                      className={`px-6 py-4 text-right font-bold text-sm ${isIncome ? 'text-emerald-500' : 'text-foreground'}`}
+                    >
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-smooth">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(t);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-smooth"
+                            title="Editar"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(t.id);
+                            }}
+                            disabled={deleteMutation.isPending}
+                            className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-smooth disabled:opacity-40"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="flex items-center">
+                          {isIncome ? (
+                            <ArrowUpRight className="inline w-3 h-3 mr-1" />
+                          ) : (
+                            <ArrowDownLeft className="inline w-3 h-3 mr-1" />
+                          )}
+                          <PrivacyAmount value={isIncome ? value : -value} />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -347,6 +360,7 @@ function TransactionsPage() {
       <TransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSuccess={handleModalSuccess}
         mode={modalMode}
         initialData={editingTransaction}
       />

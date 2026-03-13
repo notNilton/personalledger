@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import PrivacyAmount from '../components/PrivacyAmount';
-import { auth } from '../lib/auth';
+import { api } from '../lib/api';
 import {
   Plus,
   ArrowUpCircle,
@@ -65,7 +65,7 @@ function MetricCard({
   return (
     <div className="card-premium p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div className={`p-2 rounded-lg bg-muted/50 text-muted-foreground border border-border/50`}>
+        <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground border border-border/50">
           <Icon className="w-5 h-5" />
         </div>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -83,29 +83,11 @@ function MetricCard({
 }
 
 function UserDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const response = await fetch('http://localhost:3500/dashboard', {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        });
-        if (!response.ok) throw new Error('Falha ao carregar dashboard');
-        const result = await response.json();
-        setData(result);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => api.get<DashboardData>('/dashboard'),
+    staleTime: 1000 * 60, // 1 min
+  });
 
   if (isLoading) {
     return (
@@ -165,9 +147,9 @@ function UserDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Recent Transactions & Chart */}
+        {/* Left: Chart + Transactions */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* Spending Chart */}
+          {/* Cash Flow Chart */}
           <div className="card-premium p-6">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -241,9 +223,9 @@ function UserDashboard() {
           </div>
         </div>
 
-        {/* Right: Budgets & Accounts */}
+        {/* Right: Budgets + Accounts */}
         <div className="flex flex-col gap-6">
-          {/* Budget Overview */}
+          {/* Budgets */}
           <div className="card-premium p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -262,7 +244,7 @@ function UserDashboard() {
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full bg-primary transition-smooth`}
+                      className="h-full bg-primary transition-smooth"
                       style={{ width: `${Math.min((b.spent / b.limit) * 100, 100)}%` }}
                     />
                   </div>
@@ -279,7 +261,7 @@ function UserDashboard() {
             </button>
           </div>
 
-          {/* Accounts Section */}
+          {/* Accounts */}
           <div className="card-premium p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -297,9 +279,7 @@ function UserDashboard() {
                   className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-smooth group cursor-pointer border border-transparent hover:border-border"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary`}
-                    >
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
                       <Wallet className="w-4 h-4" />
                     </div>
                     <div>

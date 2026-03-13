@@ -1,11 +1,12 @@
 import {
   HeadContent,
   Scripts,
-  createRootRoute,
+  createRootRouteWithContext,
   redirect,
   Outlet,
   useLocation,
 } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
 import Footer from '../components/Footer';
@@ -18,10 +19,8 @@ import appCss from '../styles.css?url';
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   // O guard de autenticação APENAS no browser, nunca no servidor.
-  // typeof window === 'undefined' significa que estamos no servidor SSR,
-  // onde não há localStorage nem cookies confiáveis — então não fazemos nada.
   beforeLoad: ({ location }) => {
     if (typeof window === 'undefined') return;
 
@@ -52,6 +51,7 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   const location = useLocation();
+  const { queryClient } = Route.useRouteContext();
   const isAuthPage = ['/login', '/register'].includes(location.pathname);
 
   return (
@@ -61,25 +61,27 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
-        <PrivacyProvider>
-          {!isAuthPage && <Header />}
-          <main>
-            <Outlet />
-          </main>
-          {!isAuthPage && <Footer />}
-          {!isAuthPage && <QuickAddFAB />}
+        <QueryClientProvider client={queryClient}>
+          <PrivacyProvider>
+            {!isAuthPage && <Header />}
+            <main>
+              <Outlet />
+            </main>
+            {!isAuthPage && <Footer />}
+            {!isAuthPage && <QuickAddFAB />}
 
-          <TanStackDevtools
-            config={{ position: 'bottom-right' }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-          <Scripts />
-        </PrivacyProvider>
+            <TanStackDevtools
+              config={{ position: 'bottom-right' }}
+              plugins={[
+                {
+                  name: 'Tanstack Router',
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
+            <Scripts />
+          </PrivacyProvider>
+        </QueryClientProvider>
       </body>
     </html>
   );
