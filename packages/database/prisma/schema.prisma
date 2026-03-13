@@ -10,11 +10,14 @@ datasource db {
 }
 
 model User {
-    id        String  @id @default(uuid())
-    workosId  String  @unique @map("workos_id")
-    email     String  @unique
-    name      String?
-    avatarUrl String? @map("avatar_url")
+    id           String  @id @default(uuid())
+    email        String  @unique
+    passwordHash String  @map("password_hash")
+    name         String?
+    phone        String?
+    cpf          String? @unique
+    cnpj         String? @unique
+    avatarUrl    String? @map("avatar_url")
 
     subscriptionTier    String    @default("FREE") @map("subscription_tier")
     stripeCustomerId    String?   @unique @map("stripe_customer_id")
@@ -213,10 +216,10 @@ model Transaction {
 
     status TransactionStatus @default(COMPLETED)
 
-    attachmentUrl String? @map("attachment_url")
-    currencyCode  String                    @default("BRL") @map("currency_code") @db.VarChar(3)
+    attachmentUrl  String?                   @map("attachment_url")
+    currencyCode   String                    @default("BRL") @map("currency_code") @db.VarChar(3)
     classification TransactionClassification @default(COMMON)
-    isRecurring   Boolean                   @default(false) @map("is_recurring")
+    isRecurring    Boolean                   @default(false) @map("is_recurring")
 
     statementId String?              @map("statement_id")
     statement   CreditCardStatement? @relation(fields: [statementId], references: [id], onDelete: SetNull)
