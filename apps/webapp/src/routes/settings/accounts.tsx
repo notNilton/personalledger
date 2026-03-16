@@ -233,15 +233,27 @@ function AccountsPage() {
     },
   });
 
-  const netWorth = accounts.reduce((acc, accnt) => acc + Number(accnt.balance), 0);
+  // Contas: saldos
+  const totalBalance = accounts.reduce((acc, a) => acc + Number(a.balance), 0);
   const assets = accounts
     .filter((a) => Number(a.balance) > 0)
-    .reduce((acc, accnt) => acc + Number(accnt.balance), 0);
+    .reduce((acc, a) => acc + Number(a.balance), 0);
   const liabilities = Math.abs(
-    accounts
-      .filter((a) => Number(a.balance) < 0)
-      .reduce((acc, accnt) => acc + Number(accnt.balance), 0),
+    accounts.filter((a) => Number(a.balance) < 0).reduce((acc, a) => acc + Number(a.balance), 0),
   );
+
+  // Cartões de crédito: limite total, usado e disponível
+  const allCards = accounts.flatMap((a) => a.cards ?? []);
+  const creditCards = allCards.filter((c) => c.type === 'CREDIT');
+  const totalCreditLimit = creditCards.reduce(
+    (acc, c) => acc + Math.max(0, Number(c.creditLimit ?? 0)),
+    0,
+  );
+  const creditUsed = 0; // TODO: quando houver saldo de fatura por cartão, somar aqui
+  const availableCredit = Math.max(0, totalCreditLimit - creditUsed);
+
+  // Patrimônio líquido = ativos - passivos (contas) - dívida em cartões
+  const netWorth = totalBalance - creditUsed;
 
   const openAddAccount = () => {
     setModalTab('account');
@@ -333,35 +345,77 @@ function AccountsPage() {
         </div>
       ) : (
         <>
-          {/* Net Worth Summary */}
-          <div className="bg-muted/30 rounded-2xl p-8 border border-border flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-            <div className="relative">
-              <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest mb-1.5">
-                Patrimônio Líquido
-              </p>
-              <PrivacyAmount
-                value={netWorth}
-                className="text-4xl font-bold font-display tracking-tight block"
-              />
-            </div>
-            <div className="flex gap-8 relative">
-              <div className="text-left px-4">
-                <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">Ativos</p>
-                <PrivacyAmount
-                  value={assets}
-                  className="text-emerald-600 font-bold text-lg block"
-                />
-              </div>
-              <div className="text-left px-4 border-l border-border">
-                <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
-                  Passivos
+          {/* Resumo financeiro: patrimônio, contas e cartões */}
+          <div className="bg-muted/30 rounded-2xl p-8 border border-border flex flex-col gap-8 relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest mb-1.5">
+                  Patrimônio Líquido
                 </p>
                 <PrivacyAmount
-                  value={liabilities}
-                  className="text-rose-600 font-bold text-lg block"
+                  value={netWorth}
+                  className="text-4xl font-bold font-display tracking-tight block"
                 />
+                <p className="text-[10px] text-muted-foreground mt-1">Contas − dívida em cartões</p>
+              </div>
+              <div className="flex flex-wrap gap-6 md:gap-8">
+                <div className="text-left">
+                  <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
+                    Ativos
+                  </p>
+                  <PrivacyAmount
+                    value={assets}
+                    className="text-emerald-600 font-bold text-lg block"
+                  />
+                </div>
+                <div className="text-left md:border-l md:border-border md:pl-8">
+                  <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
+                    Passivos
+                  </p>
+                  <PrivacyAmount
+                    value={liabilities}
+                    className="text-rose-600 font-bold text-lg block"
+                  />
+                </div>
               </div>
             </div>
+
+            {creditCards.length > 0 && (
+              <div className="pt-6 border-t border-border">
+                <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest mb-3">
+                  Cartões de Crédito
+                </p>
+                <div className="flex flex-wrap gap-6 md:gap-10">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
+                      Limite total
+                    </p>
+                    <PrivacyAmount
+                      value={totalCreditLimit}
+                      className="text-foreground font-bold text-lg block"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
+                      Limite usado
+                    </p>
+                    <PrivacyAmount
+                      value={creditUsed}
+                      className="text-rose-600 font-bold text-lg block"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
+                      Limite disponível
+                    </p>
+                    <PrivacyAmount
+                      value={availableCredit}
+                      className="text-emerald-600 font-bold text-lg block"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Accounts Grid */}

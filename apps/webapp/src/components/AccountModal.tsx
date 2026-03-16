@@ -39,15 +39,12 @@ interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  /** Aba inicial ao abrir o modal */
+  /** Versão do modal: formulário de conta ou de cartão (definido pelo botão que abriu). */
   activeTab?: AccountModalTab;
-  /** Modo create/edit para a aba em foco */
   mode?: 'create' | 'edit';
-  /** Dados iniciais para editar conta */
   initialAccount?: Account | null;
-  /** Dados iniciais para editar cartão */
   initialCard?: Card | null;
-  /** Ao abrir na aba cartão, pré-selecionar esta conta */
+  /** Ao abrir para criar cartão, pré-selecionar esta conta. */
   preselectedAccountId?: string | null;
 }
 
@@ -74,7 +71,7 @@ export function AccountModal({
   initialCard,
   preselectedAccountId,
 }: AccountModalProps) {
-  const [tab, setTab] = useState<AccountModalTab>(initialTab);
+  const variant = initialTab;
 
   // Conta
   const [accountName, setAccountName] = useState(initialAccount?.name ?? '');
@@ -104,7 +101,6 @@ export function AccountModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setTab(initialTab);
     setError(null);
     if (initialTab === 'account') {
       setAccountName(initialAccount?.name ?? '');
@@ -227,7 +223,7 @@ export function AccountModal({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold font-display tracking-tight">
-              {tab === 'account'
+              {variant === 'account'
                 ? mode === 'edit'
                   ? 'Editar Conta'
                   : 'Nova Conta'
@@ -236,7 +232,7 @@ export function AccountModal({
                   : 'Novo Cartão'}
             </h2>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
-              {tab === 'account'
+              {variant === 'account'
                 ? 'Conta bancária, carteira ou investimento'
                 : 'Cartão de crédito ou débito vinculado a uma conta'}
             </p>
@@ -250,35 +246,7 @@ export function AccountModal({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 p-1.5 bg-muted/40 rounded-xl border border-border/50 mb-6">
-          <button
-            type="button"
-            onClick={() => setTab('account')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === 'account'
-                ? 'bg-background text-primary shadow-sm'
-                : 'text-muted-foreground hover:bg-muted/50'
-            }`}
-          >
-            <WalletIcon className="w-4 h-4" />
-            Conta
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('card')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-              tab === 'card'
-                ? 'bg-background text-primary shadow-sm'
-                : 'text-muted-foreground hover:bg-muted/50'
-            }`}
-          >
-            <CreditCardIcon className="w-4 h-4" />
-            Cartão
-          </button>
-        </div>
-
-        {tab === 'account' ? (
+        {variant === 'account' ? (
           <form className="flex flex-col gap-5" onSubmit={submitAccount}>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
