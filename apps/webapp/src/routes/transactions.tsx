@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PrivacyAmount from '../components/PrivacyAmount';
 import { TransactionModal } from '../components/TransactionModal';
@@ -64,43 +64,21 @@ function TransactionsPage() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'INCOME' | 'EXPENSE'>('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [filterRange, setFilterRange] = useState<'month' | 'custom'>('month');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  // Build query params for transactions
-  const transactionParams = useCallback(() => {
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (filterType !== 'all') params.set('type', filterType);
-    if (selectedCategory !== 'all') params.set('categoryId', selectedCategory);
-    if (filterRange === 'month') {
-      const now = new Date();
-      params.set('from', new Date(now.getFullYear(), now.getMonth(), 1).toISOString());
-      params.set('to', new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString());
-    } else {
-      if (startDate) params.set('from', startDate);
-      if (endDate) params.set('to', endDate);
-    }
-    params.set('limit', '50');
-    return params.toString();
-  }, [search, filterType, selectedCategory, filterRange, startDate, endDate]);
-
   // Queries
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: [
-      'transactions',
-      search,
-      filterType,
-      selectedCategory,
-      filterRange,
-      startDate,
-      endDate,
-    ],
-    queryFn: () => api.get<Transaction[]>(`/transactions?${transactionParams()}`),
+    queryKey: ['transactions', search, filterType, selectedCategory],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (filterType !== 'all') params.set('type', filterType);
+      if (selectedCategory !== 'all') params.set('categoryId', selectedCategory);
+      // sem filtro de data: retorna todas as transações que a API permitir
+      return api.get<Transaction[]>(`/transactions?${params.toString()}`);
+    },
     staleTime: 1000 * 30,
   });
 
@@ -146,7 +124,7 @@ function TransactionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold">Atividade</h1>
+          <h1 className="text-3xl font-display font-bold">Transações</h1>
           <p className="text-muted-foreground mt-1">Histórico completo e importação de extratos.</p>
         </div>
         <div className="flex gap-3">
@@ -199,48 +177,7 @@ function TransactionsPage() {
             ))}
           </select>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilterRange('month')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg uppercase tracking-wider transition-smooth ${filterRange === 'month' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            Este mês
-          </button>
-          <button
-            onClick={() => setFilterRange('custom')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg uppercase tracking-wider transition-smooth ${filterRange === 'custom' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
-          >
-            Personalizado
-          </button>
-        </div>
       </div>
-
-      {filterRange === 'custom' && (
-        <div className="flex gap-4 p-4 bg-muted/30 rounded-2xl border border-border/50 animate-in slide-in-from-top-2 duration-300">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
-              Início
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-card border border-border rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
-              Fim
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="bg-card border border-border rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Table */}
       <div className="card-premium overflow-hidden">

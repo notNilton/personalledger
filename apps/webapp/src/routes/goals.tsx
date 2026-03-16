@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { Plus, CheckCircle2, Target, Calendar, Loader2 } from 'lucide-react';
-import PrivacyAmount from '../../components/PrivacyAmount';
-import { api } from '../../lib/api';
+import PrivacyAmount from '../components/PrivacyAmount';
+import { api } from '../lib/api';
 import type { Goal } from './_types';
-import { GoalModal } from '../../components/GoalModal';
+import { GoalModal } from '../components/GoalModal';
 
-export const Route = createFileRoute('/evolution/goals')({
+export const Route = createFileRoute('/goals')({
   component: GoalsPage,
 });
 

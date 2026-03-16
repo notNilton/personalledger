@@ -13,11 +13,11 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import PrivacyAmount from '../../components/PrivacyAmount';
-import { api } from '../../lib/api';
+import PrivacyAmount from '../components/PrivacyAmount';
+import { api } from '../lib/api';
 import type { Vehicle, RefuelingLog, VehicleStats, VehicleMaintenanceLog } from './_types';
 
-export const Route = createFileRoute('/evolution/fuel')({
+export const Route = createFileRoute('/fuel')({
   component: FuelPage,
 });
 
@@ -152,20 +152,29 @@ function FuelPage() {
 
   if (vehiclesLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-7 h-7 animate-spin text-primary" />
+      <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8">
+        <div className="flex flex-col items-center justify-center py-24">
+          <Loader2 className="w-7 h-7 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground mt-3">Carregando veículos...</p>
+        </div>
       </div>
     );
   }
 
   if (vehicles.length === 0) {
     return (
-      <div className="card-premium p-12 flex flex-col items-center justify-center gap-4 text-center">
-        <Car className="w-12 h-12 text-muted-foreground/40" />
+      <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8">
         <div>
+          <h1 className="text-3xl font-display font-bold">Resumos Veículos</h1>
+          <p className="text-muted-foreground mt-1">
+            Histórico de abastecimentos, manutenções e gráficos por veículo.
+          </p>
+        </div>
+        <div className="card-premium p-12 flex flex-col items-center justify-center gap-4 text-center">
+          <Car className="w-12 h-12 text-muted-foreground/40" />
           <p className="font-bold">Nenhum veículo cadastrado</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Cadastre um veículo em Veículos para ver o histórico de abastecimentos.
+            Cadastre um veículo em Configurações para ver o histórico de abastecimentos.
           </p>
         </div>
       </div>
@@ -173,11 +182,20 @@ function FuelPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      {/* Dashboard Card - Mobile Responsive */}
-      <div className="card-premium p-0 overflow-hidden border-primary/5">
-        {/* Top: Vehicle Selector */}
-        <div className="p-4 sm:p-6 border-b border-border bg-gradient-to-r from-card to-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold">Resumos Veículos</h1>
+          <p className="text-muted-foreground mt-1">
+            Histórico de abastecimentos, manutenções e gráficos por veículo.
+          </p>
+        </div>
+      </div>
+
+      {/* Dashboard Card */}
+      <div className="card-premium p-0 overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <Car className="w-6 h-6" />
@@ -223,8 +241,7 @@ function FuelPage() {
           </div>
         </div>
 
-        {/* Bottom: Minimalist Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y md:divide-y-0 divide-border/50 bg-muted/5">
+        <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y md:divide-y-0 divide-border bg-muted/30">
           <div className="p-4 sm:p-6 flex flex-col gap-1">
             <h4 className="text-[9px] font-black uppercase tracking-widest text-foreground/40 flex items-center gap-1.5">
               <Gauge className="w-3 h-3 text-emerald-500" />
@@ -272,14 +289,14 @@ function FuelPage() {
         </div>
       </div>
 
-      {/* Sub-tabs for Vehicle summaries */}
-      <div className="flex flex-wrap gap-2 bg-muted/40 p-1.5 rounded-xl border border-border/50 w-full md:w-fit">
+      {/* Sub-tabs */}
+      <div className="flex flex-wrap gap-2 p-1.5 bg-muted rounded-2xl w-full md:w-fit border border-border">
         <button
           onClick={() => setFuelSubTab('fuelHistory')}
           className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
             fuelSubTab === 'fuelHistory'
-              ? 'bg-background text-primary shadow-sm'
-              : 'text-foreground/60 hover:text-foreground hover:bg-muted/50'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted/80'
           }`}
         >
           <List className="w-3.5 h-3.5" />
@@ -289,8 +306,8 @@ function FuelPage() {
           onClick={() => setFuelSubTab('maintenanceHistory')}
           className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
             fuelSubTab === 'maintenanceHistory'
-              ? 'bg-background text-primary shadow-sm'
-              : 'text-foreground/60 hover:text-foreground hover:bg-muted/50'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted/80'
           }`}
         >
           <Wrench className="w-3.5 h-3.5" />
@@ -300,8 +317,8 @@ function FuelPage() {
           onClick={() => setFuelSubTab('charts')}
           className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
             fuelSubTab === 'charts'
-              ? 'bg-background text-primary shadow-sm'
-              : 'text-foreground/60 hover:text-foreground hover:bg-muted/50'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted/80'
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
@@ -323,8 +340,11 @@ function FuelPage() {
             </div>
 
             {refuelingsLoading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+              <div className="card-premium overflow-hidden">
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground mt-3">Carregando abastecimentos...</p>
+                </div>
               </div>
             ) : refuelings.length === 0 ? (
               <div className="py-8 text-center card-premium">
@@ -339,32 +359,32 @@ function FuelPage() {
             ) : (
               <>
                 {/* Desktop Table */}
-                <div className="hidden md:block card-premium overflow-hidden border-primary/5">
+                <div className="card-premium overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-muted/30 border-b border-border">
-                          <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40">
-                            Data do Registro
+                        <tr className="bg-muted/50 border-b border-border">
+                          <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Data
                           </th>
-                          <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40">
+                          <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             Posto / Estabelecimento
                           </th>
-                          <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40 text-center">
+                          <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">
                             Odômetro
                           </th>
-                          <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40 text-center">
+                          <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">
                             Volume (L)
                           </th>
-                          <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40 text-right">
-                            Valor Total
+                          <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">
+                            Valor
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border/50">
+                      <tbody className="divide-y divide-border">
                         {refuelings.map((h) => (
-                          <tr key={h.id} className="hover:bg-muted/10 transition-smooth group">
-                            <td className="px-6 py-5 whitespace-nowrap">
+                          <tr key={h.id} className="hover:bg-muted/20 transition-smooth group">
+                            <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex flex-col">
                                 <span className="text-xs font-black text-foreground">
                                   {new Date(h.transaction.date).toLocaleDateString('pt-BR', {
@@ -382,15 +402,15 @@ function FuelPage() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-5">
-                              <div className="font-black text-xs text-foreground group-hover:text-primary transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
                                 {h.station || 'Posto não informado'}
                               </div>
-                              <div className="text-[9px] text-foreground/40 uppercase tracking-widest font-bold mt-0.5">
+                              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-0.5">
                                 {h.fuelType?.replace('_', ' ') ?? 'Combustível'}
                               </div>
                             </td>
-                            <td className="px-6 py-5 text-center">
+                            <td className="px-6 py-4 text-center">
                               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/40 border border-border/30">
                                 <span className="text-xs font-black text-foreground">
                                   {Number(h.odometer).toLocaleString('pt-BR')}
@@ -400,15 +420,15 @@ function FuelPage() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-5 text-center">
+                            <td className="px-6 py-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-xs font-black text-primary">
+                                <span className="text-sm font-bold text-primary">
                                   {Number(h.fuelLiters).toLocaleString('pt-BR', {
                                     minimumFractionDigits: 2,
                                   })}{' '}
                                   L
                                 </span>
-                                <span className="text-[9px] text-foreground/40 font-medium">
+                                <span className="text-xs text-muted-foreground">
                                   R${' '}
                                   {Number(h.pricePerLiter).toLocaleString('pt-BR', {
                                     minimumFractionDigits: 3,
@@ -417,11 +437,8 @@ function FuelPage() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-5 text-right">
-                              <PrivacyAmount
-                                value={-Number(h.transaction.amount)}
-                                className="font-black text-sm text-foreground"
-                              />
+                            <td className="px-6 py-4 text-right font-bold text-sm">
+                              <PrivacyAmount value={-Number(h.transaction.amount)} />
                             </td>
                           </tr>
                         ))}
@@ -430,7 +447,7 @@ function FuelPage() {
                   </div>
                 </div>
 
-                {/* Mobile View - Cards Layout */}
+                {/* Mobile cards */}
                 <div className="flex flex-col gap-3 md:hidden">
                   {refuelings.map((h) => (
                     <div key={h.id} className="card-premium p-4 flex flex-col gap-3">
@@ -512,8 +529,11 @@ function FuelPage() {
             </div>
 
             {maintenancesLoading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+              <div className="card-premium overflow-hidden">
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground mt-3">Carregando manutenções...</p>
+                </div>
               </div>
             ) : (
               (() => {
@@ -540,33 +560,32 @@ function FuelPage() {
 
                 return (
                   <>
-                    {/* Desktop Table */}
-                    <div className="hidden md:block card-premium overflow-hidden border-primary/5">
+                    <div className="card-premium overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="bg-muted/30 border-b border-border">
-                              <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40">
-                                Data do Registro
+                            <tr className="bg-muted/50 border-b border-border">
+                              <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Data
                               </th>
-                              <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40">
+                              <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                 Tipo
                               </th>
-                              <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40 text-center">
+                              <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">
                                 Odômetro
                               </th>
-                              <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40">
+                              <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                 Fornecedor
                               </th>
-                              <th className="px-6 py-5 text-[9px] font-bold uppercase tracking-widest text-foreground/40 text-right">
-                                Valor Total
+                              <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">
+                                Valor
                               </th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-border/50">
+                          <tbody className="divide-y divide-border">
                             {filteredMaintenances.map((h) => (
-                              <tr key={h.id} className="hover:bg-muted/10 transition-smooth group">
-                                <td className="px-6 py-5 whitespace-nowrap">
+                              <tr key={h.id} className="hover:bg-muted/20 transition-smooth group">
+                                <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex flex-col">
                                     <span className="text-xs font-black text-foreground">
                                       {new Date(h.transaction.date).toLocaleDateString('pt-BR', {
@@ -584,38 +603,32 @@ function FuelPage() {
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-6 py-5">
-                                  <div className="font-black text-xs text-foreground group-hover:text-primary transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
                                     {h.type.replace('_', ' ')}
                                   </div>
                                   {h.description && (
-                                    <div className="text-[9px] text-foreground/60 mt-0.5">
+                                    <div className="text-xs text-muted-foreground mt-0.5">
                                       {h.description}
                                     </div>
                                   )}
                                 </td>
-                                <td className="px-6 py-5 text-center">
-                                  {h.odometer != null && (
-                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/40 border border-border/30">
-                                      <span className="text-xs font-black text-foreground">
-                                        {Number(h.odometer).toLocaleString('pt-BR')}
-                                      </span>
-                                      <span className="text-[9px] uppercase font-bold text-foreground/40">
-                                        km
-                                      </span>
-                                    </div>
+                                <td className="px-6 py-4 text-center">
+                                  {h.odometer != null ? (
+                                    <span className="text-sm font-medium">
+                                      {Number(h.odometer).toLocaleString('pt-BR')} km
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
                                   )}
                                 </td>
-                                <td className="px-6 py-5">
-                                  <div className="font-black text-xs text-foreground">
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-medium text-foreground">
                                     {h.provider || 'Não informado'}
                                   </div>
                                 </td>
-                                <td className="px-6 py-5 text-right">
-                                  <PrivacyAmount
-                                    value={-Number(h.transaction.amount)}
-                                    className="font-black text-sm text-foreground"
-                                  />
+                                <td className="px-6 py-4 text-right font-bold text-sm">
+                                  <PrivacyAmount value={-Number(h.transaction.amount)} />
                                 </td>
                               </tr>
                             ))}
@@ -624,7 +637,7 @@ function FuelPage() {
                       </div>
                     </div>
 
-                    {/* Mobile View - Cards Layout */}
+                    {/* Mobile cards */}
                     <div className="flex flex-col gap-3 md:hidden">
                       {filteredMaintenances.map((h) => (
                         <div key={h.id} className="card-premium p-4 flex flex-col gap-3">

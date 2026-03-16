@@ -5,9 +5,9 @@ import {
   EyeOff,
   LayoutGrid,
   Activity,
-  Zap,
   LogOut,
   User,
+  Fuel,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { usePrivacy } from '../lib/privacy';
@@ -48,15 +48,31 @@ export default function Header() {
             activeProps={{ className: 'text-foreground bg-accent' }}
           >
             <Activity className="w-4 h-4" />
-            Atividade
+            Transações
           </Link>
-          <Link
-            to="/evolution"
+          {/* <Link
+            to="/budgets"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-accent transition-smooth"
             activeProps={{ className: 'text-foreground bg-accent' }}
           >
             <Zap className="w-4 h-4" />
-            Evolução
+            Orçamentos
+          </Link>
+          <Link
+            to="/goals"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-accent transition-smooth"
+            activeProps={{ className: 'text-foreground bg-accent' }}
+          >
+            <Target className="w-4 h-4" />
+            Metas
+          </Link> */}
+          <Link
+            to="/fuel"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-accent transition-smooth"
+            activeProps={{ className: 'text-foreground bg-accent' }}
+          >
+            <Fuel className="w-4 h-4" />
+            Resumos Veículos
           </Link>
         </div>
 

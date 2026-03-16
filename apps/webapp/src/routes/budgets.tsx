@@ -9,12 +9,12 @@ import {
   TrendingDown,
   Target,
 } from 'lucide-react';
-import PrivacyAmount from '../../components/PrivacyAmount';
-import { api } from '../../lib/api';
+import PrivacyAmount from '../components/PrivacyAmount';
+import { api } from '../lib/api';
 import type { Budget } from './_types';
-import { BudgetModal } from '../../components/BudgetModal';
+import { BudgetModal } from '../components/BudgetModal';
 
-export const Route = createFileRoute('/evolution/budgets')({
+export const Route = createFileRoute('/budgets')({
   component: BudgetsPage,
 });
 
