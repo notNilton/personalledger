@@ -133,6 +133,10 @@ export function TransactionModal({
     }
   }, [isOpen, initialData]);
 
+  useEffect(() => {
+    if (totalInstallments > 1) setIsRecurring(false);
+  }, [totalInstallments]);
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.get<Category[]>('/categories'),
@@ -242,7 +246,7 @@ export function TransactionModal({
         amount: actualAmount,
         date,
         type: isExpense ? 'EXPENSE' : 'INCOME',
-        isRecurring: classification === 'FUEL' ? false : isRecurring,
+        isRecurring: classification === 'FUEL' || totalInstallments > 1 ? false : isRecurring,
         notes: notes || undefined,
         categoryId:
           (classification === 'FUEL' ? (forcedCategoryIdForFuel ?? categoryId) : categoryId) ||
@@ -525,8 +529,8 @@ export function TransactionModal({
               </>
             )}
 
-            {/* Show Recurring only for Common */}
-            {!isFuel && (
+            {/* Show Recurring only para despesa comum e à vista (não parcelado) */}
+            {!isFuel && totalInstallments === 1 && (
               <div className="col-span-2 pt-1">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <input
