@@ -34,4 +34,19 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
+  postForm: async <T>(path: string, form: FormData) => {
+    const token = auth.getToken();
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      body: form,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message ?? `API error: ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  },
 };

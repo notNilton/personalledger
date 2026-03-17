@@ -42,7 +42,6 @@ interface Transaction {
   type: 'INCOME' | 'EXPENSE';
   classification?: string;
   isRecurring?: boolean;
-  notes?: string;
   categoryId?: string;
   accountId?: string;
   category?: Category;
@@ -87,16 +86,17 @@ export function TransactionModal({
       ? new Date(initialData.date).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0],
   );
-  const [description] = useState(initialData?.description ?? '');
+  const [description, setDescription] = useState(initialData?.description ?? '');
   const [amount, setAmount] = useState(
     initialData ? Math.floor(Math.abs(Number(initialData.amount)) * 100).toString() : '0',
   );
-  const [notes, setNotes] = useState(initialData?.notes ?? '');
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? '');
   const [accountId, setAccountId] = useState(
     initialData?.accountId ?? initialData?.account?.id ?? '',
   );
   const [totalInstallments, setTotalInstallments] = useState(1);
+  const [hasPaidInstallments, setHasPaidInstallments] = useState(false);
+  const [paidInstallments, setPaidInstallments] = useState(1);
 
   // Fuel specific state
   const [classification, setClassification] = useState<string>(
@@ -154,6 +154,19 @@ export function TransactionModal({
     staleTime: 1000 * 60 * 5,
     enabled: isOpen,
   });
+
+  useEffect(() => {
+    if (totalInstallments <= 1) {
+      setHasPaidInstallments(false);
+      setPaidInstallments(1);
+      return;
+    }
+    setPaidInstallments((prev) => Math.min(prev, totalInstallments));
+  }, [totalInstallments]);
+
+  useEffect(() => {
+    if (!hasPaidInstallments) setPaidInstallments(1);
+  }, [hasPaidInstallments]);
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles'],
@@ -247,13 +260,13 @@ export function TransactionModal({
         date,
         type: isExpense ? 'EXPENSE' : 'INCOME',
         isRecurring: classification === 'FUEL' || totalInstallments > 1 ? false : isRecurring,
-        notes: notes || undefined,
         categoryId:
           (classification === 'FUEL' ? (forcedCategoryIdForFuel ?? categoryId) : categoryId) ||
           undefined,
         accountId,
         classification,
         ...(!isEditing && totalInstallments > 1 && { totalInstallments }),
+        ...(!isEditing && totalInstallments > 1 && hasPaidInstallments && { paidInstallments }),
         ...(classification === 'FUEL' && {
           vehicleId,
           currentKm: Number(currentKm),
@@ -377,6 +390,60 @@ export function TransactionModal({
                 </p>
               )}
             </div>
+
+            {/* Parcelas já pagas (somente quando parcelado) */}
+            {!isEditing && totalInstallments > 1 && (
+              <div className="col-span-2 bg-muted/30 border border-border rounded-2xl p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasPaidInstallments}
+                    onChange={(e) => setHasPaidInstallments(e.target.checked)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20 transition-smooth"
+                  />
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-widest">
+                      já pagou algumas parcelas?
+                    </span>
+                    <p className="text-[10px] text-muted-foreground">
+                      Marca as primeiras parcelas como pagas
+                    </p>
+                  </div>
+                </label>
+
+                {hasPaidInstallments && (
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                        quantas parcelas?
+                      </label>
+                      <select
+                        value={paidInstallments}
+                        onChange={(e) => setPaidInstallments(Number(e.target.value))}
+                        className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth appearance-none"
+                      >
+                        {Array.from({ length: totalInstallments }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n} de {totalInstallments}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                        valor já pago
+                      </label>
+                      <div className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold">
+                        {(installmentValue * paidInstallments).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Date */}
             <div>
@@ -570,19 +637,21 @@ export function TransactionModal({
               </div>
             )}
 
-            {/* Notes / Observações */}
-            <div className="col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                Observações
-              </label>
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex: Posto Ipiranga do centro..."
-                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth resize-none"
-              />
-            </div>
+            {/* Descrição (renomeada para Observações) */}
+            {!isFuel && !isMaintenance && (
+              <div className="col-span-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                  Observações
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Ex: Supermercado, posto, etc..."
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth resize-none"
+                />
+              </div>
+            )}
           </div>
 
           {error && (
