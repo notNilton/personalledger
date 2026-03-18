@@ -109,6 +109,10 @@ model Card {
     type      CardType
     creditLimit Decimal? @map("credit_limit") @db.Decimal(12, 2)
 
+    // Opcional: permite que cada cartão tenha seu próprio fechamento/vencimento.
+    closingDay Int? @map("closing_day")
+    dueDay     Int? @map("due_day")
+
     color     String?  @db.VarChar(7)
     icon      String?
 
@@ -193,6 +197,7 @@ enum TransactionType {
     INCOME
     EXPENSE
     TRANSFER
+    ADJUSTMENT
 }
 
 enum TransactionClassification {
@@ -304,6 +309,9 @@ model Transaction {
     transferOut Transfer? @relation("TransferSource")
     transferIn  Transfer? @relation("TransferDestination")
 
+    // Opcional: guarda o id da transação original (ex.: estorno/ajuste).
+    originalTransactionId String? @map("original_transaction_id")
+
     isActive  Boolean   @default(true) @map("is_active")
     deletedAt DateTime? @map("deleted_at")
 
@@ -391,6 +399,12 @@ model ImportFingerprint {
     @@map("import_fingerprints")
 }
 
+enum BudgetPeriod {
+    MONTHLY
+    WEEKLY
+    YEARLY
+}
+
 model Budget {
     id     String @id @default(uuid())
     userId String @map("user_id")
@@ -402,6 +416,8 @@ model Budget {
     amountLimit Decimal @map("amount_limit") @db.Decimal(12, 2)
     month       Int
     year        Int
+
+    period BudgetPeriod @default(MONTHLY)
 
     rolloverAmount Decimal @default(0.00) @map("rollover_amount") @db.Decimal(12, 2)
 

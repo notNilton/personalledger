@@ -130,6 +130,40 @@ model CreditCardStatement {
   @@unique([accountId, month, year])
 }
 
+enum CardType {
+  CREDIT
+  DEBIT
+}
+
+model Card {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId       String
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  name            String      @db.VarChar(100)
+  brand           String?
+  last4           String?
+
+  type            CardType
+  creditLimit     Decimal?    @db.Decimal(12, 2)
+
+  // Opcional: permite que cada cartão tenha seu próprio fechamento/vencimento.
+  // Útil quando múltiplos cartões compartilham a mesma conta.
+  closingDay      Int?
+  dueDay          Int?
+
+  isActive        Boolean     @default(true)
+  deletedAt       DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  transactions    Transaction[]
+}
+
 enum StatementStatus {
   OPEN
   CLOSED
@@ -198,6 +232,7 @@ enum TransactionType {
   INCOME       // Receita
   EXPENSE      // Despesa
   TRANSFER     // Transferência entre contas
+  ADJUSTMENT   // Ajustes/estornos que não devem afetar relatórios como receita/despesa
 }
 
 enum TransactionStatus {
@@ -249,6 +284,9 @@ model Transaction {
   // Para Transferências (Ponte com a tabela Transfer)
   transferOut       Transfer?         @relation("TransferSource")
   transferIn        Transfer?         @relation("TransferDestination")
+
+  // Opcional: guarda o id da transação original (ex.: estorno/ajuste).
+  originalTransactionId String?
 
   // Controle de Soft Delete
   isActive        Boolean           @default(true)
@@ -302,6 +340,12 @@ model Installment {
 O envelompamento por categoria.
 
 ```prisma
+enum BudgetPeriod {
+  MONTHLY
+  WEEKLY
+  YEARLY
+}
+
 model Budget {
   id              String     @id @default(uuid())
   userId          String
@@ -313,6 +357,10 @@ model Budget {
   amountLimit     Decimal    @db.Decimal(12, 2) // Quanto planeja gastar
   month           Int        // 1-12
   year            Int        // 2024, 2025
+
+  // Mantém compatibilidade com o modelo atual (month/year),
+  // mas permite expandir o domínio para outros períodos.
+  period          BudgetPeriod @default(MONTHLY)
 
   // Rolagem de limite (Zero-based budgeting)
   rolloverAmount  Decimal    @default(0.00) @db.Decimal(12, 2)
