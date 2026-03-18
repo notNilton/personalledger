@@ -25,6 +25,7 @@
     "db:deploy": "npm run db:deploy --workspace=@project-budget/database",
     "db:studio": "npm run db:studio --workspace=@project-budget/database",
     "db:seed": "npm run db:seed --workspace=@project-budget/database",
+    "db:reset": "npm run db:reset --workspace=@project-budget/database",
     "db:docker:up": "npm run docker:up --workspace=@project-budget/database",
     "db:docker:down": "npm run docker:down --workspace=@project-budget/database",
     "// --- webapp ---": "",

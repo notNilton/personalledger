@@ -36,10 +36,26 @@ async function main() {
   await prisma.user.deleteMany();
 
   const passwordHash = await bcrypt.hash('password123', 10);
+  const niltonPasswordHash = await bcrypt.hash('@2Organela', 10);
 
-  // 1. Criar Usuários (7 usuários)
+  // 1. Criar Usuários
   console.log('👤 Criando usuários...');
   const users = [];
+
+  const nilton = await prisma.user.create({
+    data: {
+      email: 'nilton.naab@gmail.com',
+      passwordHash: niltonPasswordHash,
+      name: 'Nilton Aguiar dos Santos',
+      phone: '65992785635',
+      avatarUrl: faker.image.avatar(),
+      cpf: null,
+      cnpj: faker.string.numeric(14),
+      subscriptionTier: 'PREMIUM',
+    },
+  });
+  users.push(nilton);
+
   for (let i = 0; i < 7; i++) {
     const isCompany = i > 4; // 2 empresas, 5 pessoas físicas
     const user = await prisma.user.create({
@@ -185,7 +201,7 @@ async function main() {
         data: {
           userId: user.id,
           name: faker.vehicle.model(),
-          make: faker.vehicle.manufacturer(),
+          brand: faker.vehicle.manufacturer(),
           model: faker.vehicle.type(),
           year: faker.number.int({ min: 2010, max: 2024 }),
           licensePlate: `${faker.string.alpha(3).toUpperCase()}${faker.string.numeric(4)}`,

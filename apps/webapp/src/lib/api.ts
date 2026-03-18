@@ -20,6 +20,9 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      auth.logout();
+    }
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `API error: ${res.status}`);
   }
@@ -44,6 +47,9 @@ export const api = {
       },
     });
     if (!res.ok) {
+      if (res.status === 401) {
+        auth.logout();
+      }
       const body = await res.json().catch(() => ({}));
       throw new Error(body.message ?? `API error: ${res.status}`);
     }
