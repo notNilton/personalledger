@@ -131,7 +131,9 @@ function buildTransactionPayload({
     accountId,
     channel,
     classification,
-    ...(expenseKind === 'CREDIT' && creditCardId ? { cardId: creditCardId } : {}),
+    ...((expenseKind === 'CREDIT' || classification === 'TRANSFER') && creditCardId
+      ? { cardId: creditCardId }
+      : {}),
     ...(!isEditing && totalInstallments > 1 && { totalInstallments }),
     ...(!isEditing && totalInstallments > 1 && hasPaidInstallments && { paidInstallments }),
     ...(classification === 'FUEL' && {
@@ -540,6 +542,12 @@ export function useTransactionModalModel({
   const isMaintenance = classification === 'MAINTENANCE';
   const creditCardAccounts = accounts.filter((a) => a.type === 'CREDIT_CARD');
 
+  const isSubmitDisabled =
+    Number(amount) <= 0 ||
+    !date ||
+    (activeTab === 'credit_card_payment' && (!accountId || !creditCardId)) ||
+    (activeTab !== 'credit_card_payment' && !accountId && !(isExpense && expenseKind === 'CREDIT'));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -640,6 +648,7 @@ export function useTransactionModalModel({
     vehicles,
     // submission
     isLoading,
+    isSubmitDisabled,
     error,
     handleSubmit,
   };
