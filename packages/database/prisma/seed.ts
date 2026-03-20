@@ -5,6 +5,7 @@ import {
   FuelType,
   TransactionStatus,
   AccountType,
+  AccountOwnership,
 } from '@prisma/client';
 import { fakerPT_BR as faker } from '@faker-js/faker';
 import * as bcrypt from 'bcrypt';
@@ -19,29 +20,28 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Iniciando o processo de seed...');
 
-  // Limpar dados existentes
   console.log('🧹 Limpando dados antigos...');
   await prisma.transactionTag.deleteMany();
+  await prisma.importFingerprint.deleteMany();
+  await prisma.importFile.deleteMany();
+  await prisma.vehicleMaintenance.deleteMany();
   await prisma.refuelingLog.deleteMany();
   await prisma.vehicle.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.transfer.deleteMany();
   await prisma.transaction.deleteMany();
+  await prisma.installment.deleteMany();
   await prisma.tag.deleteMany();
   await prisma.category.deleteMany();
   await prisma.balanceHistory.deleteMany();
-  await prisma.creditCardStatement.deleteMany();
+  await prisma.card.deleteMany();
   await prisma.accountAccess.deleteMany();
   await prisma.account.deleteMany();
   await prisma.user.deleteMany();
 
-  const passwordHash = await bcrypt.hash('password123', 10);
   const niltonPasswordHash = await bcrypt.hash('@2Organela', 10);
 
-  // 1. Criar Usuários
-  console.log('👤 Criando usuários...');
-  const users = [];
-
+  console.log('👤 Criando usuário Nilton...');
   const nilton = await prisma.user.create({
     data: {
       email: 'nilton.naab@gmail.com',
@@ -49,31 +49,72 @@ async function main() {
       name: 'Nilton Aguiar dos Santos',
       phone: '65992785635',
       avatarUrl: faker.image.avatar(),
-      cpf: null,
-      cnpj: faker.string.numeric(14),
       subscriptionTier: 'PREMIUM',
     },
   });
-  users.push(nilton);
 
-  for (let i = 0; i < 7; i++) {
-    const isCompany = i > 4; // 2 empresas, 5 pessoas físicas
-    const user = await prisma.user.create({
-      data: {
-        email: faker.internet.email().toLowerCase(),
-        passwordHash,
-        name: faker.person.fullName(),
-        phone: faker.phone.number(),
-        avatarUrl: faker.image.avatar(),
-        cpf: isCompany ? null : faker.string.numeric(11),
-        cnpj: isCompany ? faker.string.numeric(14) : null,
-        subscriptionTier: i === 0 ? 'PREMIUM' : 'FREE',
-      },
-    });
-    users.push(user);
-  }
+  console.log('💳 Criando contas bancárias...');
 
-  // 2. Criar Categorias Globais e de Usuário
+  // Conta 1: Banco do Brasil — Pessoal, CPF
+  const bbAccount = await prisma.account.create({
+    data: {
+      userId: nilton.id,
+      name: 'Banco do Brasil',
+      type: AccountType.CHECKING,
+      ownership: AccountOwnership.PERSONAL,
+      bankName: 'Banco do Brasil',
+      cpf: '06143981183',
+      balance: faker.number.float({ min: 1000, max: 8000, fractionDigits: 2 }),
+      color: '#F5A623',
+      icon: 'Building',
+    },
+  });
+
+  // Conta 2: Nubank — Pessoal, CPF
+  const nubankPessoal = await prisma.account.create({
+    data: {
+      userId: nilton.id,
+      name: 'Nubank',
+      type: AccountType.CHECKING,
+      ownership: AccountOwnership.PERSONAL,
+      bankName: 'Nubank',
+      cpf: '06143981183',
+      balance: faker.number.float({ min: 500, max: 5000, fractionDigits: 2 }),
+      color: '#8A05BE',
+      icon: 'Wallet',
+    },
+  });
+
+  // Conta 3: Mercado Pago — Pessoal, CPF
+  await prisma.account.create({
+    data: {
+      userId: nilton.id,
+      name: 'Mercado Pago',
+      type: AccountType.WALLET,
+      ownership: AccountOwnership.PERSONAL,
+      bankName: 'Mercado Pago',
+      cpf: '06143981183',
+      balance: faker.number.float({ min: 0, max: 2000, fractionDigits: 2 }),
+      color: '#00B1EA',
+      icon: 'Wallet',
+    },
+  });
+
+  // Conta 4: Nubank — Empresarial, CNPJ aleatório
+  await prisma.account.create({
+    data: {
+      userId: nilton.id,
+      name: 'Nubank PJ',
+      type: AccountType.CHECKING,
+      ownership: AccountOwnership.BUSINESS,
+      bankName: 'Nubank',
+      cnpj: faker.string.numeric(14),
+      balance: faker.number.float({ min: 2000, max: 20000, fractionDigits: 2 }),
+      color: '#8A05BE',
+      icon: 'Building',
+    },
+  });
+
   console.log('📂 Criando categorias...');
   const categoryTemplates = [
     // RECEITAS
@@ -101,7 +142,6 @@ async function main() {
       color: '#10B981',
       type: TransactionType.INCOME,
     },
-
     // DESPESAS
     {
       name: 'Habitação',
@@ -153,127 +193,83 @@ async function main() {
     },
   ];
 
-  for (const user of users) {
-    for (const temp of categoryTemplates) {
-      await prisma.category.create({
+  const categories: Awaited<ReturnType<typeof prisma.category.create>>[] = [];
+  for (const temp of categoryTemplates) {
+    const cat = await prisma.category.create({ data: { userId: nilton.id, ...temp } });
+    categories.push(cat);
+  }
+
+  console.log('🚗 Criando veículos...');
+  const mobilidadeCategory = categories.find((c) => c.name === 'Mobilidade');
+
+  for (let j = 0; j < 2; j++) {
+    const vehicle = await prisma.vehicle.create({
+      data: {
+        userId: nilton.id,
+        name: faker.vehicle.model(),
+        brand: faker.vehicle.manufacturer(),
+        model: faker.vehicle.type(),
+        year: faker.number.int({ min: 2015, max: 2024 }),
+        licensePlate: `${faker.string.alpha(3).toUpperCase()}${faker.string.numeric(4)}`,
+      },
+    });
+
+    for (let k = 0; k < 8; k++) {
+      const liters = faker.number.float({ min: 20, max: 50, fractionDigits: 2 });
+      const pricePerLiter = faker.number.float({ min: 5.2, max: 6.5, fractionDigits: 2 });
+      const totalAmount = liters * pricePerLiter;
+
+      const transaction = await prisma.transaction.create({
         data: {
-          userId: user.id,
-          ...temp,
+          userId: nilton.id,
+          accountId: bbAccount.id,
+          categoryId: mobilidadeCategory?.id,
+          type: TransactionType.EXPENSE,
+          amount: totalAmount,
+          date: faker.date.recent({ days: 120 }),
+          description: `Abastecimento - ${vehicle.name}`,
+          classification: 'FUEL',
+          status: TransactionStatus.COMPLETED,
+        },
+      });
+
+      await prisma.refuelingLog.create({
+        data: {
+          vehicleId: vehicle.id,
+          transactionId: transaction.id,
+          fuelType: faker.helpers.arrayElement([
+            FuelType.GASOLINA_COMUM,
+            FuelType.GASOLINA_ADITIVADA,
+            FuelType.ETANOL,
+            FuelType.DIESEL,
+          ]),
+          station: faker.company.name(),
+          odometer: 10000 + k * 400,
+          fuelLiters: liters,
+          pricePerLiter: pricePerLiter,
+          isFullTank: true,
         },
       });
     }
   }
 
-  // 3. Criar Contas para cada Usuário
-  console.log('💳 Criando contas bancárias...');
-  for (const user of users) {
-    // Conta Corrente
-    const checking = await prisma.account.create({
+  console.log('💸 Criando transações aleatórias...');
+  const accounts = [bbAccount, nubankPessoal];
+
+  for (let l = 0; l < 40; l++) {
+    const cat = faker.helpers.arrayElement(categories);
+    await prisma.transaction.create({
       data: {
-        userId: user.id,
-        name: 'Nubank Principal',
-        type: AccountType.CHECKING,
-        balance: faker.number.float({ min: 1000, max: 10000, fractionDigits: 2 }),
-        color: '#8A05BE',
-        icon: 'CreditCard',
+        userId: nilton.id,
+        accountId: faker.helpers.arrayElement(accounts).id,
+        categoryId: cat.id,
+        type: cat.type,
+        amount: faker.number.float({ min: 10, max: 500, fractionDigits: 2 }),
+        date: faker.date.recent({ days: 90 }),
+        description: faker.commerce.productName(),
+        status: TransactionStatus.COMPLETED,
       },
     });
-
-    // Cartão de Crédito
-    await prisma.account.create({
-      data: {
-        userId: user.id,
-        name: 'Visa Infinite',
-        type: AccountType.CREDIT_CARD,
-        balance: 0,
-        creditLimit: 5000,
-        closingDay: 5,
-        dueDay: 12,
-        color: '#000000',
-        icon: 'Wallet',
-      },
-    });
-
-    // 4. Criar Veículos (4 para cada usuário)
-    console.log(`🚗 Criando veículos para ${user.name}...`);
-    for (let j = 0; j < 4; j++) {
-      const vehicle = await prisma.vehicle.create({
-        data: {
-          userId: user.id,
-          name: faker.vehicle.model(),
-          brand: faker.vehicle.manufacturer(),
-          model: faker.vehicle.type(),
-          year: faker.number.int({ min: 2010, max: 2024 }),
-          licensePlate: `${faker.string.alpha(3).toUpperCase()}${faker.string.numeric(4)}`,
-        },
-      });
-
-      // 5. Histórico de Abastecimento (10 por veículo)
-      const fuelCategory = await prisma.category.findFirst({
-        where: { userId: user.id, name: 'Combustível' },
-      });
-
-      for (let k = 0; k < 10; k++) {
-        const liters = faker.number.float({ min: 20, max: 50, fractionDigits: 2 });
-        const pricePerLiter = faker.number.float({ min: 5.2, max: 6.5, fractionDigits: 2 });
-        const totalAmount = liters * pricePerLiter;
-
-        const transaction = await prisma.transaction.create({
-          data: {
-            userId: user.id,
-            accountId: checking.id,
-            categoryId: fuelCategory?.id,
-            type: TransactionType.EXPENSE,
-            amount: totalAmount,
-            date: faker.date.recent({ days: 120 }),
-            description: `Abastecimento - ${vehicle.name}`,
-            classification: 'FUEL',
-            status: TransactionStatus.COMPLETED,
-          },
-        });
-
-        await prisma.refuelingLog.create({
-          data: {
-            vehicleId: vehicle.id,
-            transactionId: transaction.id,
-            fuelType: faker.helpers.arrayElement([
-              FuelType.GASOLINA_COMUM,
-              FuelType.GASOLINA_ADITIVADA,
-              FuelType.ETANOL,
-              FuelType.DIESEL,
-            ]),
-            station: faker.company.name(),
-            odometer: 10000 + k * 400,
-            fuelLiters: liters,
-            pricePerLiter: pricePerLiter,
-            isFullTank: true,
-          },
-        });
-      }
-    }
-
-    // 6. Transações Aleatórias (30 por usuário)
-    console.log(`💸 Criando transações extras para ${user.name}...`);
-    const allCategories = await prisma.category.findMany({ where: { userId: user.id } });
-
-    for (let l = 0; l < 30; l++) {
-      const cat = faker.helpers.arrayElement(allCategories);
-      await prisma.transaction.create({
-        data: {
-          userId: user.id,
-          accountId: checking.id,
-          categoryId: cat.id,
-          type: cat.type,
-          amount: faker.number.float({ min: 10, max: 500, fractionDigits: 2 }),
-          date: faker.date.recent({ days: 90 }),
-          description: faker.commerce.productName(),
-          status: TransactionStatus.COMPLETED,
-        },
-      });
-    }
-
-    // 7. Metas (Goals)
-    // (removido) Metas e Orçamentos já não fazem parte do schema minimalista
   }
 
   console.log('✅ Seed finalizado com sucesso!');
