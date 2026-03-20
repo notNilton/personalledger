@@ -5,9 +5,10 @@ import {
   Wallet,
   Building,
   PiggyBank,
-  CreditCard,
   Banknote,
   Palette,
+  User,
+  Briefcase,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -15,7 +16,12 @@ interface Account {
   id: string;
   name: string;
   balance: number | string;
+  creditLimit?: number | string | null;
   type: string;
+  ownership?: string;
+  bankName?: string;
+  cpf?: string;
+  cnpj?: string;
   color: string;
   icon: string;
 }
@@ -31,7 +37,6 @@ interface AccountModalProps {
 const ACCOUNT_TYPES = [
   { value: 'CHECKING', label: 'Conta Corrente', icon: Building },
   { value: 'SAVINGS', label: 'Conta Poupança', icon: PiggyBank },
-  { value: 'CREDIT_CARD', label: 'Cartão de Crédito', icon: CreditCard },
   { value: 'CASH', label: 'Dinheiro em Espécie', icon: Banknote },
   { value: 'INVESTMENT', label: 'Investimento', icon: Wallet },
 ];
@@ -46,7 +51,16 @@ export function AccountModal({
   const isEditing = mode === 'edit';
   const [name, setName] = useState(initialData?.name ?? '');
   const [type, setType] = useState(initialData?.type ?? 'CHECKING');
+  const [ownership, setOwnership] = useState<'PERSONAL' | 'BUSINESS'>(
+    (initialData?.ownership as 'PERSONAL' | 'BUSINESS') ?? 'PERSONAL',
+  );
+  const [bankName, setBankName] = useState(initialData?.bankName ?? '');
+  const [cpf, setCpf] = useState(initialData?.cpf ?? '');
+  const [cnpj, setCnpj] = useState(initialData?.cnpj ?? '');
   const [balance, setBalance] = useState(initialData?.balance?.toString() ?? '0');
+  const [creditLimit, setCreditLimit] = useState(
+    initialData?.creditLimit != null ? initialData.creditLimit.toString() : '',
+  );
   const [color, setColor] = useState(initialData?.color ?? '#6366f1');
   const [icon, setIcon] = useState(initialData?.icon ?? 'Wallet');
 
@@ -64,7 +78,12 @@ export function AccountModal({
       const payload = {
         name,
         type,
+        ownership,
+        bankName: bankName || undefined,
+        cpf: ownership === 'PERSONAL' && cpf ? cpf : undefined,
+        cnpj: ownership === 'BUSINESS' && cnpj ? cnpj : undefined,
         balance: Number(balance),
+        ...(creditLimit !== '' && { creditLimit: Number(creditLimit) }),
         color,
         icon,
       };
@@ -107,6 +126,31 @@ export function AccountModal({
 
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">
+            {/* Ownership */}
+            <div className="col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                Titularidade
+              </label>
+              <div className="flex gap-2 p-1 bg-muted rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setOwnership('PERSONAL')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-smooth ${ownership === 'PERSONAL' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Pessoal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOwnership('BUSINESS')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-smooth ${ownership === 'BUSINESS' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  Empresarial
+                </button>
+              </div>
+            </div>
+
             {/* Name */}
             <div className="col-span-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
@@ -121,6 +165,51 @@ export function AccountModal({
                 className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
               />
             </div>
+
+            {/* Bank Name */}
+            <div className="col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                Nome do Banco / Instituição
+              </label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="Ex: Nubank, Itaú, Bradesco"
+                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+              />
+            </div>
+
+            {/* CPF or CNPJ */}
+            {ownership === 'PERSONAL' ? (
+              <div className="col-span-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                  CPF do Titular
+                </label>
+                <input
+                  type="text"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                />
+              </div>
+            ) : (
+              <div className="col-span-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                  CNPJ da Empresa
+                </label>
+                <input
+                  type="text"
+                  value={cnpj}
+                  onChange={(e) => setCnpj(e.target.value)}
+                  placeholder="00.000.000/0000-00"
+                  maxLength={18}
+                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                />
+              </div>
+            )}
 
             {/* Type */}
             <div className="col-span-2">
@@ -164,8 +253,24 @@ export function AccountModal({
               />
             </div>
 
-            {/* Color */}
+            {/* Credit Limit */}
             <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                Limite de Crédito
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={creditLimit}
+                onChange={(e) => setCreditLimit(e.target.value)}
+                placeholder="Opcional"
+                className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+              />
+            </div>
+
+            {/* Color */}
+            <div className="col-span-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
                 Cor Identificadora
               </label>

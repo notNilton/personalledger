@@ -7,9 +7,8 @@ import {
   IsBoolean,
   MaxLength,
   Min,
-  Max,
 } from 'class-validator';
-import { AccountType } from '@project-budget/database';
+import { AccountType, AccountOwnership } from '@project-budget/database';
 
 export class CreateAccountDto {
   @IsString()
@@ -20,6 +19,25 @@ export class CreateAccountDto {
   @IsEnum(AccountType)
   @IsNotEmpty()
   type: AccountType;
+
+  @IsEnum(AccountOwnership)
+  @IsOptional()
+  ownership?: AccountOwnership;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  bankName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(14)
+  cpf?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(18)
+  cnpj?: string;
 
   @IsString()
   @IsOptional()
@@ -43,18 +61,6 @@ export class CreateAccountDto {
   @IsOptional()
   @Min(0)
   creditLimit?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(1)
-  @Max(31)
-  closingDay?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(1)
-  @Max(31)
-  dueDay?: number;
 
   @IsBoolean()
   @IsOptional()

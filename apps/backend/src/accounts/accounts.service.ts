@@ -30,6 +30,10 @@ export class AccountsService {
         userId,
         name: dto.name,
         type: dto.type,
+        ownership: dto.ownership ?? 'PERSONAL',
+        bankName: dto.bankName,
+        cpf: dto.cpf,
+        cnpj: dto.cnpj,
         color: dto.color,
         icon: dto.icon,
         currencyCode: dto.currencyCode || 'BRL',
@@ -38,8 +42,6 @@ export class AccountsService {
           dto.creditLimit !== undefined
             ? new Prisma.Decimal(dto.creditLimit)
             : null,
-        closingDay: dto.closingDay,
-        dueDay: dto.dueDay,
         includeInTotal: dto.includeInTotal ?? true,
       },
     });
@@ -57,6 +59,10 @@ export class AccountsService {
       data: {
         name: dto.name,
         type: dto.type,
+        ownership: dto.ownership,
+        bankName: dto.bankName,
+        cpf: dto.cpf,
+        cnpj: dto.cnpj,
         color: dto.color,
         icon: dto.icon,
         currencyCode: dto.currencyCode,
@@ -68,8 +74,6 @@ export class AccountsService {
           dto.creditLimit !== undefined
             ? new Prisma.Decimal(dto.creditLimit)
             : undefined,
-        closingDay: dto.closingDay,
-        dueDay: dto.dueDay,
         includeInTotal: dto.includeInTotal,
         isActive: dto.isActive,
       },

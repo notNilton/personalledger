@@ -13,6 +13,7 @@ interface Category {
 interface Account {
   id: string;
   name: string;
+  creditLimit?: number | string | null;
 }
 
 interface Vehicle {
@@ -36,6 +37,7 @@ interface Transaction {
   date: string;
   type: 'INCOME' | 'EXPENSE';
   classification?: string;
+  paymentMethod?: 'DEBIT' | 'CREDIT';
   isRecurring?: boolean;
   notes?: string;
   categoryId?: string;
@@ -81,6 +83,10 @@ export function TransactionModal({
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? '');
   const [accountId, setAccountId] = useState(
     initialData?.accountId ?? initialData?.account?.id ?? '',
+  );
+
+  const [paymentMethod, setPaymentMethod] = useState<'DEBIT' | 'CREDIT'>(
+    initialData?.paymentMethod ?? 'DEBIT',
   );
 
   // Fuel specific state
@@ -193,6 +199,7 @@ export function TransactionModal({
         categoryId: categoryId || undefined,
         accountId,
         classification,
+        paymentMethod,
         ...(classification === 'FUEL' && {
           vehicleId,
           currentKm: Number(currentKm),
@@ -369,14 +376,23 @@ export function TransactionModal({
             )}
 
             {/* Account */}
-            <div className="col-span-1">
+            <div
+              className={
+                accounts.find((a) => a.id === accountId && Number(a.creditLimit) > 0)
+                  ? 'col-span-1'
+                  : 'col-span-1'
+              }
+            >
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
                 Pagamento via
               </label>
               <select
                 required
                 value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
+                onChange={(e) => {
+                  setAccountId(e.target.value);
+                  setPaymentMethod('DEBIT');
+                }}
                 className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth appearance-none"
               >
                 <option value="">Selecione uma conta</option>
@@ -387,6 +403,32 @@ export function TransactionModal({
                 ))}
               </select>
             </div>
+
+            {/* Debit / Credit toggle — only shown when account has a credit limit */}
+            {accountId &&
+              Number(accounts.find((a) => a.id === accountId)?.creditLimit ?? 0) > 0 && (
+                <div className="col-span-1">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
+                    Modalidade
+                  </label>
+                  <div className="flex gap-1 p-1 bg-muted rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('DEBIT')}
+                      className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-smooth ${paymentMethod === 'DEBIT' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
+                    >
+                      Débito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('CREDIT')}
+                      className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-smooth ${paymentMethod === 'CREDIT' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
+                    >
+                      Crédito
+                    </button>
+                  </div>
+                </div>
+              )}
 
             {/* Fuel Specific Fields integrated */}
             {isFuel && (

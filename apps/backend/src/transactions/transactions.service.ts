@@ -83,6 +83,7 @@ export class TransactionsService {
       categoryId,
       type,
       classification,
+      paymentMethod,
       isRecurring,
       amount,
       date,
@@ -104,6 +105,7 @@ export class TransactionsService {
         categoryId,
         type,
         classification: classification ?? 'COMMON',
+        paymentMethod: paymentMethod ?? 'DEBIT',
         isRecurring: isRecurring ?? false,
         amount: new Prisma.Decimal(amount),
         date: new Date(date),
@@ -143,6 +145,7 @@ export class TransactionsService {
       pricePerLiter,
       station,
       classification,
+      paymentMethod,
       amount,
       date,
       ...rest
@@ -155,6 +158,7 @@ export class TransactionsService {
       data: {
         ...rest,
         classification,
+        paymentMethod,
         amount: amount ? new Prisma.Decimal(amount) : undefined,
         date: date ? new Date(date) : undefined,
         account: accountId ? { connect: { id: accountId } } : undefined,

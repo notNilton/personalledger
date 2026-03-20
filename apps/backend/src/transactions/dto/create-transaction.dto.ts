@@ -12,6 +12,7 @@ import {
 import {
   TransactionType,
   TransactionClassification,
+  PaymentMethod,
   FuelType,
 } from '@project-budget/database';
 
@@ -31,6 +32,10 @@ export class CreateTransactionDto {
   @IsEnum(TransactionClassification)
   @IsOptional()
   classification?: TransactionClassification;
+
+  @IsEnum(PaymentMethod)
+  @IsOptional()
+  paymentMethod?: PaymentMethod;
 
   @IsBoolean()
   @IsOptional()

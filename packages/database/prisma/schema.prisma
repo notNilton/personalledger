@@ -42,10 +42,14 @@ model User {
 enum AccountType {
     CHECKING
     SAVINGS
-    CREDIT_CARD
     CASH
     WALLET
     INVESTMENT
+}
+
+enum AccountOwnership {
+    PERSONAL
+    BUSINESS
 }
 
 model Account {
@@ -59,14 +63,16 @@ model Account {
     icon         String?
     currencyCode String      @default("BRL") @map("currency_code") @db.VarChar(3)
 
+    bankName  String?          @map("bank_name") @db.VarChar(100)
+    ownership AccountOwnership @default(PERSONAL)
+    cpf       String?          @db.VarChar(14)
+    cnpj      String?          @db.VarChar(18)
+
     isShared   Boolean         @default(false) @map("is_shared")
     sharedWith AccountAccess[]
 
-    balance Decimal @default(0.00) @db.Decimal(12, 2)
-
+    balance     Decimal  @default(0.00) @db.Decimal(12, 2)
     creditLimit Decimal? @map("credit_limit") @db.Decimal(12, 2)
-    closingDay  Int?     @map("closing_day")
-    dueDay      Int?     @map("due_day")
 
     includeInTotal Boolean @default(true) @map("include_in_total")
 
@@ -78,7 +84,6 @@ model Account {
 
     transactions   Transaction[]
     balanceHistory BalanceHistory[]
-    statements     CreditCardStatement[]
 
     @@map("accounts")
 }
@@ -104,36 +109,6 @@ enum AccessRole {
     VIEWER
 }
 
-model CreditCardStatement {
-    id        String  @id @default(uuid())
-    accountId String  @map("account_id")
-    account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-    month Int
-    year  Int
-
-    status      StatementStatus @default(OPEN)
-    totalAmount Decimal         @default(0.00) @map("total_amount") @db.Decimal(12, 2)
-    paidAmount  Decimal         @default(0.00) @map("paid_amount") @db.Decimal(12, 2)
-
-    dueDate     DateTime @map("due_date") @db.Date
-    closingDate DateTime @map("closing_date") @db.Date
-
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
-
-    transactions Transaction[]
-
-    @@unique([accountId, month, year])
-    @@map("credit_card_statements")
-}
-
-enum StatementStatus {
-    OPEN
-    CLOSED
-    PAID
-}
-
 model BalanceHistory {
     id        String  @id @default(uuid())
     accountId String  @map("account_id")
@@ -157,6 +132,11 @@ enum TransactionType {
 enum TransactionClassification {
     COMMON
     FUEL
+}
+
+enum PaymentMethod {
+    DEBIT
+    CREDIT
 }
 
 enum TransactionStatus {
@@ -229,10 +209,8 @@ model Transaction {
     attachmentUrl  String?                   @map("attachment_url")
     currencyCode   String                    @default("BRL") @map("currency_code") @db.VarChar(3)
     classification TransactionClassification @default(COMMON)
+    paymentMethod  PaymentMethod             @default(DEBIT) @map("payment_method")
     isRecurring    Boolean                   @default(false) @map("is_recurring")
-
-    statementId String?              @map("statement_id")
-    statement   CreditCardStatement? @relation(fields: [statementId], references: [id], onDelete: SetNull)
 
     goalId String? @map("goal_id")
     goal   Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
