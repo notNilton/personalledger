@@ -55,7 +55,7 @@ async function main() {
 
   console.log('💳 Criando contas bancárias...');
 
-  // Conta 1: Banco do Brasil — Pessoal, CPF
+  // Conta 1: Banco do Brasil — Pessoal, CPF, limite R$ 500
   const bbAccount = await prisma.account.create({
     data: {
       userId: nilton.id,
@@ -65,12 +65,15 @@ async function main() {
       bankName: 'Banco do Brasil',
       cpf: '06143981183',
       balance: faker.number.float({ min: 1000, max: 8000, fractionDigits: 2 }),
+      hasDebit: true,
+      hasPix: true,
+      hasCredit: false,
       color: '#F5A623',
       icon: 'Building',
     },
   });
 
-  // Conta 2: Nubank — Pessoal, CPF
+  // Conta 2: Nubank — Pessoal, CPF, limite R$ 8.300
   const nubankPessoal = await prisma.account.create({
     data: {
       userId: nilton.id,
@@ -80,12 +83,16 @@ async function main() {
       bankName: 'Nubank',
       cpf: '06143981183',
       balance: faker.number.float({ min: 500, max: 5000, fractionDigits: 2 }),
+      creditLimit: 8300,
+      hasDebit: true,
+      hasPix: true,
+      hasCredit: true,
       color: '#8A05BE',
       icon: 'Wallet',
     },
   });
 
-  // Conta 3: Mercado Pago — Pessoal, CPF
+  // Conta 3: Mercado Pago — Pessoal, CPF, limite R$ 7.300
   await prisma.account.create({
     data: {
       userId: nilton.id,
@@ -95,12 +102,16 @@ async function main() {
       bankName: 'Mercado Pago',
       cpf: '06143981183',
       balance: faker.number.float({ min: 0, max: 2000, fractionDigits: 2 }),
+      creditLimit: 7300,
+      hasDebit: true,
+      hasPix: true,
+      hasCredit: true,
       color: '#00B1EA',
       icon: 'Wallet',
     },
   });
 
-  // Conta 4: Nubank — Empresarial, CNPJ aleatório
+  // Conta 4: Nubank PJ — Empresarial, CNPJ, limite R$ 3.200
   await prisma.account.create({
     data: {
       userId: nilton.id,
@@ -110,6 +121,10 @@ async function main() {
       bankName: 'Nubank',
       cnpj: faker.string.numeric(14),
       balance: faker.number.float({ min: 2000, max: 20000, fractionDigits: 2 }),
+      creditLimit: 3200,
+      hasDebit: true,
+      hasPix: true,
+      hasCredit: true,
       color: '#8A05BE',
       icon: 'Building',
     },

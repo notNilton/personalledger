@@ -25,6 +25,11 @@ export class AccountsController {
     return this.accountsService.findAll(user.id);
   }
 
+  @Get('credit-summary')
+  creditSummary(@CurrentUser() user: User) {
+    return this.accountsService.creditSummary(user.id);
+  }
+
   @Get(':id')
   findOne(
     @Param('id') id: string,

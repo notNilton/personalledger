@@ -64,5 +64,17 @@ export class CreateAccountDto {
 
   @IsBoolean()
   @IsOptional()
+  hasDebit?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  hasPix?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  hasCredit?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
   includeInTotal?: boolean;
 }

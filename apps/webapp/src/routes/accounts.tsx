@@ -7,200 +7,138 @@ import {
   Wallet,
   Building,
   PiggyBank,
-  CreditCard,
-  CreditCard as CreditCardIcon,
   Banknote,
-  ArrowRight,
   Edit2,
   Trash2,
   Loader2,
   type LucideIcon,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { AccountModal, type AccountModalTab } from '../components/AccountModal';
+import { AccountModal } from '../components/AccountModal';
 
 export const Route = createFileRoute('/accounts')({
   component: AccountsPage,
 });
 
-interface Card {
-  id: string;
-  accountId: string;
-  name: string;
-  type: 'CREDIT' | 'DEBIT';
-  creditLimit?: number | string | null;
-  color?: string | null;
-  closingDay?: number | null;
-  dueDay?: number | null;
-}
-
 interface Account {
   id: string;
   name: string;
   balance: number | string;
-  type: 'CHECKING' | 'SAVINGS' | 'CREDIT_CARD' | 'CASH' | 'WALLET' | 'INVESTMENT';
+  creditLimit?: number | string | null;
+  type: 'CHECKING' | 'SAVINGS' | 'CASH' | 'WALLET' | 'INVESTMENT';
   color: string;
   icon: string;
-  cards?: Card[];
+  ownership?: string;
+  bankName?: string;
+  hasDebit?: boolean;
+  hasPix?: boolean;
+  hasCredit?: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
   CHECKING: 'Corrente',
   SAVINGS: 'Poupança',
-  CREDIT_CARD: 'Cartão',
   CASH: 'Dinheiro',
   WALLET: 'Carteira',
-  INVESTMENT: 'Investimento',
-};
-
-const CARD_TYPE_LABELS: Record<string, string> = {
-  CREDIT: 'Crédito',
-  DEBIT: 'Débito',
+  INVESTMENT: 'Invest.',
 };
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Wallet,
   Building,
   PiggyBank,
-  CreditCard,
   Banknote,
 };
 
 function AccountCard({
   account,
-  onEditAccount,
-  onDeleteAccount,
-  onAddCard,
-  onEditCard,
-  onDeleteCard,
+  onEdit,
+  onDelete,
 }: {
   account: Account;
-  onEditAccount: (a: Account) => void;
-  onDeleteAccount: (id: string) => void;
-  onAddCard: (accountId: string) => void;
-  onEditCard: (card: Card) => void;
-  onDeleteCard: (cardId: string) => void;
+  onEdit: (a: Account) => void;
+  onDelete: (id: string) => void;
 }) {
-  const Icon = ICON_MAP[account.icon] || Wallet;
-  const balanceValue = Number(account.balance);
-  const cards = account.cards ?? [];
+  const Icon = ICON_MAP[account.icon] ?? Wallet;
+  const creditLimitValue = Number(account.creditLimit ?? 0);
+  const hasCredit = creditLimitValue > 0;
 
   return (
-    <div className="card-premium p-6 group relative overflow-hidden h-full flex flex-col">
-      <div className="relative flex flex-col gap-5 flex-1">
-        <div className="flex items-center justify-between">
+    <div className="card-premium p-4 group relative flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
           <div
-            className="p-2.5 rounded-xl border"
+            className="p-2 rounded-lg border"
             style={{
               backgroundColor: `${account.color}15`,
               color: account.color,
               borderColor: `${account.color}30`,
             }}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-              {TYPE_LABELS[account.type] || account.type}
-            </span>
-            <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-smooth">
-              <button
-                onClick={() => onEditAccount(account)}
-                className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-smooth"
-                title="Editar conta"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => onDeleteAccount(account.id)}
-                className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-smooth"
-                title="Excluir conta"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <div>
+            <p className="text-sm font-semibold leading-tight">{account.name}</p>
+            {account.bankName && (
+              <p className="text-[10px] text-muted-foreground/60 leading-tight">
+                {account.bankName}
+              </p>
+            )}
           </div>
         </div>
-        <div>
-          <h3 className="text-muted-foreground text-xs font-medium">{account.name}</h3>
-          <p className="text-2xl font-bold font-display mt-0.5 tracking-tight">
-            <PrivacyAmount value={balanceValue} />
-          </p>
-        </div>
-
-        {/* Cartões vinculados */}
-        <div className="mt-auto pt-4 border-t border-border/50 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Cartões
-            </span>
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+            {TYPE_LABELS[account.type] ?? account.type}
+          </span>
+          <div className="opacity-0 group-hover:opacity-100 flex gap-0.5 transition-smooth ml-1">
             <button
-              type="button"
-              onClick={() => onAddCard(account.id)}
-              className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+              onClick={() => onEdit(account)}
+              className="p-1 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary transition-smooth"
             >
-              <Plus className="w-3 h-3" />
-              Adicionar
+              <Edit2 className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => onDelete(account.id)}
+              className="p-1 rounded-md hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-smooth"
+            >
+              <Trash2 className="w-3 h-3" />
             </button>
           </div>
-          {cards.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">Nenhum cartão vinculado</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {cards.map((card) => (
-                <li
-                  key={card.id}
-                  className="flex items-center justify-between gap-2 py-2 px-3 rounded-xl bg-muted/30 border border-border/50 group/card"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className="p-1.5 rounded-lg shrink-0"
-                      style={{
-                        backgroundColor: (card.color ?? account.color) + '20',
-                        color: card.color ?? account.color,
-                      }}
-                    >
-                      <CreditCardIcon className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold truncate">{card.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {CARD_TYPE_LABELS[card.type]}
-                        {card.type === 'CREDIT' && card.creditLimit != null && (
-                          <>
-                            {' '}
-                            · Limite{' '}
-                            <PrivacyAmount value={Number(card.creditLimit)} className="inline" />
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover/card:opacity-100 transition-smooth shrink-0">
-                    <button
-                      onClick={() => onEditCard(card)}
-                      className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-smooth"
-                      title="Editar cartão"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteCard(card.id)}
-                      className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-smooth"
-                      title="Excluir cartão"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        </div>
+      </div>
+
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[10px] text-muted-foreground">Saldo</p>
+          <p className="text-xl font-bold font-display tracking-tight">
+            <PrivacyAmount value={Number(account.balance)} />
+          </p>
+          {hasCredit && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Limite:{' '}
+              <PrivacyAmount
+                value={creditLimitValue}
+                className="inline font-bold text-violet-600"
+              />
+            </p>
           )}
         </div>
-
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-smooth translate-y-1 group-hover:translate-y-0 text-right justify-end">
-          <span>Detalhes</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+        <div className="flex gap-1">
+          {(account.hasDebit ?? true) && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">
+              Déb
+            </span>
+          )}
+          {(account.hasPix ?? true) && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">
+              PIX
+            </span>
+          )}
+          {hasCredit && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-600 border border-violet-500/20">
+              Cred
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -210,227 +148,119 @@ function AccountCard({
 function AccountsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<AccountModalTab>('account');
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const [preselectedAccountId, setPreselectedAccountId] = useState<string | null>(null);
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => api.get<Account[]>('/accounts'),
   });
 
-  const deleteAccountMutation = useMutation({
+  const { data: creditSummary } = useQuery({
+    queryKey: ['accounts', 'credit-summary'],
+    queryFn: () =>
+      api.get<{ totalCreditLimit: number; creditUsed: number; availableCredit: number }>(
+        '/accounts/credit-summary',
+      ),
+  });
+
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/accounts/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['accounts'] }),
   });
 
-  const deleteCardMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/cards/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    },
-  });
+  const totalBalance = accounts.reduce((acc, a) => acc + Math.max(0, Number(a.balance)), 0);
 
-  // Contas: saldos
-  const totalBalance = accounts.reduce((acc, a) => acc + Number(a.balance), 0);
-  const assets = accounts
-    .filter((a) => Number(a.balance) > 0)
-    .reduce((acc, a) => acc + Number(a.balance), 0);
-  const liabilities = Math.abs(
-    accounts.filter((a) => Number(a.balance) < 0).reduce((acc, a) => acc + Number(a.balance), 0),
-  );
-
-  // Cartões de crédito: limite total, usado e disponível
-  const allCards = accounts.flatMap((a) => a.cards ?? []);
-  const creditCards = allCards.filter((c) => c.type === 'CREDIT');
-  const totalCreditLimit = creditCards.reduce(
-    (acc, c) => acc + Math.max(0, Number(c.creditLimit ?? 0)),
-    0,
-  );
-  const creditUsed = 0; // TODO: quando houver saldo de fatura por cartão, somar aqui
-  const availableCredit = Math.max(0, totalCreditLimit - creditUsed);
-
-  // Patrimônio líquido = ativos - passivos (contas) - dívida em cartões
-  const netWorth = totalBalance - creditUsed;
-
-  const openAddAccount = () => {
-    setModalTab('account');
+  const openCreate = () => {
     setModalMode('create');
     setSelectedAccount(null);
-    setSelectedCard(null);
-    setPreselectedAccountId(null);
     setIsModalOpen(true);
   };
 
-  const openAddCard = (accountId?: string) => {
-    setModalTab('card');
-    setModalMode('create');
-    setSelectedAccount(null);
-    setSelectedCard(null);
-    setPreselectedAccountId(accountId ?? null);
-    setIsModalOpen(true);
-  };
-
-  const openEditAccount = (account: Account) => {
-    setModalTab('account');
+  const openEdit = (account: Account) => {
     setModalMode('edit');
     setSelectedAccount(account);
-    setSelectedCard(null);
-    setPreselectedAccountId(null);
     setIsModalOpen(true);
   };
 
-  const openEditCard = (card: Card) => {
-    setModalTab('card');
-    setModalMode('edit');
-    setSelectedAccount(null);
-    setSelectedCard(card);
-    setPreselectedAccountId(null);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteAccount = (id: string) => {
-    if (
-      confirm(
-        'Tem certeza que deseja excluir esta conta? Todas as transações vinculadas serão mantidas, mas a conta não aparecerá mais.',
-      )
-    ) {
-      deleteAccountMutation.mutate(id);
+  const handleDelete = (id: string) => {
+    if (confirm('Excluir esta conta? As transações vinculadas serão mantidas.')) {
+      deleteMutation.mutate(id);
     }
-  };
-
-  const handleDeleteCard = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este cartão?')) {
-      deleteCardMutation.mutate(id);
-    }
-  };
-
-  const handleModalSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['accounts'] });
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto flex flex-col gap-10">
+    <div className="p-6 max-w-5xl mx-auto flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold">Suas Contas</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie suas carteiras, contas bancárias, cartões e investimentos.
-          </p>
+          <h1 className="text-2xl font-display font-bold">Contas</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Gerencie suas contas e carteiras.</p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={openAddCard}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-border font-semibold hover:bg-muted/50 transition-smooth"
-          >
-            <CreditCardIcon className="w-4 h-4" />
-            Adicionar Cartão
-          </button>
-          <button
-            onClick={openAddAccount}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-smooth"
-          >
-            <Plus className="w-4 h-4" />
-            Adicionar Conta
-          </button>
-        </div>
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-smooth"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Nova Conta
+        </button>
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-medium">Carregando suas contas...</p>
+        <div className="flex items-center justify-center py-16 gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
         </div>
       ) : (
         <>
-          {/* Resumo financeiro: patrimônio, contas e cartões */}
-          <div className="bg-muted/30 rounded-2xl p-8 border border-border flex flex-col gap-8 relative overflow-hidden">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
-                <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest mb-1.5">
-                  Patrimônio Líquido
-                </p>
-                <PrivacyAmount
-                  value={netWorth}
-                  className="text-4xl font-bold font-display tracking-tight block"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">Contas − dívida em cartões</p>
-              </div>
-              <div className="flex flex-wrap gap-6 md:gap-8">
-                <div className="text-left">
-                  <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
-                    Ativos
-                  </p>
-                  <PrivacyAmount
-                    value={assets}
-                    className="text-emerald-600 font-bold text-lg block"
-                  />
-                </div>
-                <div className="text-left md:border-l md:border-border md:pl-8">
-                  <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
-                    Passivos
-                  </p>
-                  <PrivacyAmount
-                    value={liabilities}
-                    className="text-rose-600 font-bold text-lg block"
-                  />
-                </div>
-              </div>
+          {/* Resumo compacto */}
+          <div className="flex flex-wrap items-center gap-6 px-4 py-3 bg-muted/30 rounded-xl border border-border">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                Patrimônio
+              </p>
+              <PrivacyAmount
+                value={totalBalance}
+                className="text-2xl font-bold font-display tracking-tight block"
+              />
             </div>
-
-            {creditCards.length > 0 && (
-              <div className="pt-6 border-t border-border">
-                <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest mb-3">
-                  Cartões de Crédito
-                </p>
-                <div className="flex flex-wrap gap-6 md:gap-10">
-                  <div>
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
-                      Limite total
-                    </p>
-                    <PrivacyAmount
-                      value={totalCreditLimit}
-                      className="text-foreground font-bold text-lg block"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
-                      Limite usado
-                    </p>
-                    <PrivacyAmount
-                      value={creditUsed}
-                      className="text-rose-600 font-bold text-lg block"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase mb-1">
-                      Limite disponível
-                    </p>
-                    <PrivacyAmount
-                      value={availableCredit}
-                      className="text-emerald-600 font-bold text-lg block"
-                    />
-                  </div>
+            {(creditSummary?.totalCreditLimit ?? 0) > 0 && (
+              <>
+                <div className="border-l border-border pl-6">
+                  <p className="text-[9px] font-bold uppercase text-muted-foreground">
+                    Limite total
+                  </p>
+                  <PrivacyAmount
+                    value={creditSummary!.totalCreditLimit}
+                    className="text-violet-600 font-bold text-base block"
+                  />
                 </div>
-              </div>
+                <div className="border-l border-border pl-6">
+                  <p className="text-[9px] font-bold uppercase text-muted-foreground">
+                    Crédito usado
+                  </p>
+                  <PrivacyAmount
+                    value={creditSummary!.creditUsed}
+                    className="text-rose-500 font-bold text-base block"
+                  />
+                </div>
+                <div className="border-l border-border pl-6">
+                  <p className="text-[9px] font-bold uppercase text-muted-foreground">Disponível</p>
+                  <PrivacyAmount
+                    value={creditSummary!.availableCredit}
+                    className="text-emerald-600 font-bold text-base block"
+                  />
+                </div>
+              </>
             )}
           </div>
 
-          {/* Accounts Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {accounts.map((account) => (
               <AccountCard
                 key={account.id}
                 account={account}
-                onEditAccount={openEditAccount}
-                onDeleteAccount={handleDeleteAccount}
-                onAddCard={openAddCard}
-                onEditCard={openEditCard}
-                onDeleteCard={handleDeleteCard}
+                onEdit={openEdit}
+                onDelete={handleDelete}
               />
             ))}
           </div>
@@ -440,12 +270,9 @@ function AccountsPage() {
       <AccountModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={handleModalSuccess}
-        activeTab={modalTab}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['accounts'] })}
         mode={modalMode}
         initialAccount={selectedAccount}
-        initialCard={selectedCard}
-        preselectedAccountId={preselectedAccountId}
       />
     </div>
   );

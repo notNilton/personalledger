@@ -13,9 +13,6 @@ export class AccountsService {
     return this.db.account.findMany({
       where: { userId, isActive: true },
       orderBy: { name: 'asc' },
-      include: {
-        cards: { where: { isActive: true }, orderBy: { name: 'asc' } },
-      },
     });
   }
 
@@ -45,6 +42,9 @@ export class AccountsService {
           dto.creditLimit !== undefined
             ? new Prisma.Decimal(dto.creditLimit)
             : null,
+        hasDebit: dto.hasDebit ?? true,
+        hasPix: dto.hasPix ?? true,
+        hasCredit: dto.hasCredit ?? false,
         includeInTotal: dto.includeInTotal ?? true,
       },
     });
@@ -77,10 +77,61 @@ export class AccountsService {
           dto.creditLimit !== undefined
             ? new Prisma.Decimal(dto.creditLimit)
             : undefined,
+        hasDebit: dto.hasDebit,
+        hasPix: dto.hasPix,
+        hasCredit: dto.hasCredit,
         includeInTotal: dto.includeInTotal,
         isActive: dto.isActive,
       },
     });
+  }
+
+  async creditSummary(userId: string): Promise<{
+    totalCreditLimit: number;
+    creditUsed: number;
+    availableCredit: number;
+  }> {
+    const accounts = await this.db.account.findMany({
+      where: { userId, isActive: true },
+      select: { creditLimit: true },
+    });
+
+    const totalCreditLimit = accounts.reduce(
+      (sum, a) => sum + Number(a.creditLimit ?? 0),
+      0,
+    );
+
+    const [expenses, payments] = await Promise.all([
+      this.db.transaction.aggregate({
+        where: {
+          userId,
+          isActive: true,
+          paymentMethod: 'CREDIT',
+          type: 'EXPENSE',
+        },
+        _sum: { amount: true },
+      }),
+      this.db.transaction.aggregate({
+        where: {
+          userId,
+          isActive: true,
+          paymentMethod: 'CREDIT',
+          type: 'INCOME',
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const creditUsed = Math.max(
+      0,
+      Number(expenses._sum.amount ?? 0) - Number(payments._sum.amount ?? 0),
+    );
+
+    return {
+      totalCreditLimit,
+      creditUsed,
+      availableCredit: Math.max(0, totalCreditLimit - creditUsed),
+    };
   }
 
   async remove(id: string, userId: string): Promise<Account> {

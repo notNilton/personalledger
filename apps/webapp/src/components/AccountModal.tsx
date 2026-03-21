@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   X,
   Loader2,
@@ -6,14 +6,12 @@ import {
   Building,
   PiggyBank,
   Banknote,
-  Palette,
   User,
   Briefcase,
-  CreditCard,
+  ChevronDown,
 } from 'lucide-react';
+import { HexColorPicker } from 'react-colorful';
 import { api } from '../lib/api';
-
-export type AccountModalTab = 'account' | 'card';
 
 interface Account {
   id: string;
@@ -27,172 +25,186 @@ interface Account {
   cnpj?: string;
   color: string;
   icon: string;
-  cards?: Card[];
-}
-
-interface Card {
-  id: string;
-  accountId: string;
-  name: string;
-  type: 'CREDIT' | 'DEBIT';
-  creditLimit?: number | string | null;
-  color?: string | null;
-  account?: { id: string; name: string };
-  closingDay?: number | null;
-  dueDay?: number | null;
+  hasDebit?: boolean;
+  hasPix?: boolean;
+  hasCredit?: boolean;
 }
 
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  activeTab?: AccountModalTab;
   mode?: 'create' | 'edit';
   initialAccount?: Account | null;
-  initialCard?: Card | null;
-  preselectedAccountId?: string | null;
 }
 
-const ACCOUNT_TYPES = [
+const ACCOUNT_TYPE_OPTIONS = [
   { value: 'CHECKING', label: 'Conta Corrente', icon: Building },
   { value: 'SAVINGS', label: 'Conta Poupança', icon: PiggyBank },
   { value: 'CASH', label: 'Dinheiro em Espécie', icon: Banknote },
-  { value: 'WALLET', label: 'Carteira', icon: Wallet },
+  { value: 'WALLET', label: 'Carteira Digital', icon: Wallet },
   { value: 'INVESTMENT', label: 'Investimento', icon: Wallet },
 ];
 
-const CARD_TYPES = [
-  { value: 'DEBIT', label: 'Débito', icon: CreditCard },
-  { value: 'CREDIT', label: 'Crédito', icon: CreditCard },
-];
+function TypeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = ACCOUNT_TYPE_OPTIONS.find((o) => o.value === value);
+  const Icon = selected?.icon ?? Wallet;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between text-left bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+      >
+        <div className="flex items-center gap-2 font-medium">
+          <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span>{selected?.label ?? 'Selecione'}</span>
+        </div>
+        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 z-50 bg-card border border-border rounded-xl shadow-xl shadow-primary/10 overflow-hidden animate-in fade-in slide-in-from-top-2 p-1 ring-1 ring-black/5">
+            {ACCOUNT_TYPE_OPTIONS.map((opt) => {
+              const OptIcon = opt.icon;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth hover:bg-muted/60 ${value === opt.value ? 'bg-primary/5 text-primary font-bold' : 'text-foreground'}`}
+                >
+                  <OptIcon className="w-4 h-4 shrink-0" />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const ICON_BY_TYPE: Record<string, string> = {
+  CHECKING: 'Building',
+  SAVINGS: 'PiggyBank',
+  CASH: 'Banknote',
+  WALLET: 'Wallet',
+  INVESTMENT: 'Wallet',
+};
+
+function ColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full h-[38px] rounded-lg border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+        style={{ backgroundColor: value }}
+      />
+      {open && (
+        <div className="absolute top-[calc(100%+6px)] right-0 z-50 p-2 bg-card border border-border rounded-xl shadow-xl shadow-primary/10 animate-in fade-in slide-in-from-top-2">
+          <HexColorPicker color={value} onChange={onChange} />
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="mt-2 w-full text-xs text-center bg-muted/40 border border-border rounded-lg px-2 py-1 outline-none font-mono"
+            maxLength={7}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AccountModal({
   isOpen,
   onClose,
   onSuccess,
-  activeTab: initialTab = 'account',
   mode = 'create',
   initialAccount,
-  initialCard,
-  preselectedAccountId,
 }: AccountModalProps) {
-  const variant = initialTab;
-
-  // Conta
-  const [accountName, setAccountName] = useState(initialAccount?.name ?? '');
-  const [accountType, setAccountType] = useState(initialAccount?.type ?? 'CHECKING');
-  const [ownership, setOwnership] = useState<'PERSONAL' | 'BUSINESS'>(
-    (initialAccount?.ownership as 'PERSONAL' | 'BUSINESS') ?? 'PERSONAL',
-  );
-  const [bankName, setBankName] = useState(initialAccount?.bankName ?? '');
-  const [cpf, setCpf] = useState(initialAccount?.cpf ?? '');
-  const [cnpj, setCnpj] = useState(initialAccount?.cnpj ?? '');
-  const [balance, setBalance] = useState(
-    initialAccount ? Math.floor(Math.abs(Number(initialAccount.balance)) * 100).toString() : '0',
-  );
-  const [accountColor, setAccountColor] = useState(initialAccount?.color ?? '#6366f1');
-
-  // Cartão
-  const [cardAccountId, setCardAccountId] = useState(
-    initialCard?.accountId ?? preselectedAccountId ?? '',
-  );
-  const [cardName, setCardName] = useState(initialCard?.name ?? '');
-  const [cardType, setCardType] = useState<'CREDIT' | 'DEBIT'>(initialCard?.type ?? 'DEBIT');
-  const [creditLimit, setCreditLimit] = useState(
-    initialCard?.creditLimit != null
-      ? Math.floor(Math.abs(Number(initialCard.creditLimit)) * 100).toString()
-      : '0',
-  );
-  const [cardColor, setCardColor] = useState(initialCard?.color ?? '#6366f1');
-  const [closingDay, setClosingDay] = useState(initialCard?.closingDay?.toString() ?? '');
-  const [dueDay, setDueDay] = useState(initialCard?.dueDay?.toString() ?? '');
-
+  const [name, setName] = useState('');
+  const [type, setType] = useState('CHECKING');
+  const [ownership, setOwnership] = useState<'PERSONAL' | 'BUSINESS'>('PERSONAL');
+  const [bankName, setBankName] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [cnpj, setCnpj] = useState('');
+  const [balance, setBalance] = useState('0');
+  const [color, setColor] = useState('#6366f1');
+  const [hasDebit, setHasDebit] = useState(true);
+  const [hasPix, setHasPix] = useState(true);
+  const [hasCredit, setHasCredit] = useState(false);
+  const [creditLimit, setCreditLimit] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [accountsList, setAccountsList] = useState<Account[]>([]);
 
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
-    if (initialTab === 'account') {
-      setAccountName(initialAccount?.name ?? '');
-      setAccountType(initialAccount?.type ?? 'CHECKING');
-      setOwnership((initialAccount?.ownership as 'PERSONAL' | 'BUSINESS') ?? 'PERSONAL');
-      setBankName(initialAccount?.bankName ?? '');
-      setCpf(initialAccount?.cpf ?? '');
-      setCnpj(initialAccount?.cnpj ?? '');
-      setBalance(
-        initialAccount
-          ? Math.floor(Math.abs(Number(initialAccount.balance)) * 100).toString()
-          : '0',
-      );
-      setAccountColor(initialAccount?.color ?? '#6366f1');
-    } else {
-      setCardAccountId(initialCard?.accountId ?? preselectedAccountId ?? '');
-      setCardName(initialCard?.name ?? '');
-      setCardType(initialCard?.type ?? 'DEBIT');
-      setCreditLimit(
-        initialCard?.creditLimit != null
-          ? Math.floor(Math.abs(Number(initialCard.creditLimit)) * 100).toString()
-          : '0',
-      );
-      setCardColor(initialCard?.color ?? '#6366f1');
-      setClosingDay(initialCard?.closingDay?.toString() ?? '');
-      setDueDay(initialCard?.dueDay?.toString() ?? '');
-    }
-  }, [isOpen, initialTab, initialAccount, initialCard, preselectedAccountId]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    api
-      .get<Account[]>('/accounts')
-      .then((data) => setAccountsList(Array.isArray(data) ? data : []));
-  }, [isOpen]);
+    setName(initialAccount?.name ?? '');
+    setType(initialAccount?.type ?? 'CHECKING');
+    setOwnership((initialAccount?.ownership as 'PERSONAL' | 'BUSINESS') ?? 'PERSONAL');
+    setBankName(initialAccount?.bankName ?? '');
+    setCpf(initialAccount?.cpf ?? '');
+    setCnpj(initialAccount?.cnpj ?? '');
+    setBalance(
+      initialAccount ? Math.floor(Math.abs(Number(initialAccount.balance)) * 100).toString() : '0',
+    );
+    setColor(initialAccount?.color ?? '#6366f1');
+    setHasDebit(initialAccount?.hasDebit ?? true);
+    setHasPix(initialAccount?.hasPix ?? true);
+    const existingLimit = Number(initialAccount?.creditLimit ?? 0);
+    setHasCredit(initialAccount?.hasCredit ?? existingLimit > 0);
+    setCreditLimit(existingLimit > 0 ? Math.floor(existingLimit * 100).toString() : '0');
+  }, [isOpen, initialAccount]);
 
   if (!isOpen) return null;
 
-  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBalance(e.target.value.replace(/\D/g, ''));
-  };
-  const handleCreditLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCreditLimit(e.target.value.replace(/\D/g, ''));
-  };
+  const fmt = (cents: string) =>
+    (Number(cents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const formattedBalance = (Number(balance) / 100).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-  const formattedCreditLimit = (Number(creditLimit) / 100).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-
-  const submitAccount = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
       const payload = {
-        name: accountName,
-        type: accountType,
+        name,
+        type,
         ownership,
         bankName: bankName || undefined,
         cpf: ownership === 'PERSONAL' && cpf ? cpf : undefined,
         cnpj: ownership === 'BUSINESS' && cnpj ? cnpj : undefined,
         balance: Number(balance) / 100,
-        color: accountColor,
-        icon:
-          (
-            {
-              CHECKING: 'Building',
-              SAVINGS: 'PiggyBank',
-              CASH: 'Banknote',
-              WALLET: 'Wallet',
-              INVESTMENT: 'Wallet',
-            } as Record<string, string>
-          )[accountType] ?? 'Wallet',
+        color,
+        icon: ICON_BY_TYPE[type] ?? 'Wallet',
+        hasDebit,
+        hasPix,
+        hasCredit,
+        creditLimit: hasCredit ? Number(creditLimit) / 100 : null,
       };
+
       if (mode === 'edit' && initialAccount) {
         await api.patch(`/accounts/${initialAccount.id}`, payload);
       } else {
@@ -207,374 +219,200 @@ export function AccountModal({
     }
   };
 
-  const submitCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cardAccountId) {
-      setError('Selecione uma conta para vincular o cartão.');
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const payload = {
-        accountId: cardAccountId,
-        name: cardName,
-        type: cardType,
-        color: cardColor,
-        ...(cardType === 'CREDIT' && { creditLimit: Number(creditLimit) / 100 }),
-        ...(cardType === 'CREDIT' && closingDay && { closingDay: Number(closingDay) }),
-        ...(cardType === 'CREDIT' && dueDay && { dueDay: Number(dueDay) }),
-      };
-      if (mode === 'edit' && initialCard) {
-        await api.patch(`/cards/${initialCard.id}`, payload);
-      } else {
-        await api.post('/cards', payload);
-      }
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar cartão.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const bankAccounts = accountsList.filter((a) =>
-    ['CHECKING', 'SAVINGS', 'CASH', 'WALLET', 'INVESTMENT'].includes(a.type),
-  );
+  const inputCls =
+    'w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth';
+  const labelCls =
+    'text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 block';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl shadow-primary/5 p-8 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold font-display tracking-tight">
-              {variant === 'account'
-                ? mode === 'edit'
-                  ? 'Editar Conta'
-                  : 'Nova Conta'
-                : mode === 'edit'
-                  ? 'Editar Cartão'
-                  : 'Novo Cartão'}
-            </h2>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
-              {variant === 'account'
-                ? 'Conta bancária, carteira ou investimento'
-                : 'Cartão de crédito ou débito vinculado a uma conta'}
-            </p>
-          </div>
+      <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-2xl shadow-primary/5 p-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold font-display">
+            {mode === 'edit' ? 'Editar Conta' : 'Nova Conta'}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-muted transition-smooth text-muted-foreground"
+            className="p-1.5 rounded-lg hover:bg-muted transition-smooth text-muted-foreground"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {variant === 'account' ? (
-          <form className="flex flex-col gap-5" onSubmit={submitAccount}>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Titularidade */}
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Titularidade
-                </label>
-                <div className="flex gap-2 p-1 bg-muted rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setOwnership('PERSONAL')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-smooth ${ownership === 'PERSONAL' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    Pessoal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOwnership('BUSINESS')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-smooth ${ownership === 'BUSINESS' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted-foreground/5'}`}
-                  >
-                    <Briefcase className="w-3.5 h-3.5" />
-                    Empresarial
-                  </button>
-                </div>
-              </div>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          {/* Titularidade */}
+          <div>
+            <label className={labelCls}>Titularidade</label>
+            <div className="flex gap-1.5 p-1 bg-muted rounded-lg">
+              {(['PERSONAL', 'BUSINESS'] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOwnership(o)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-smooth ${
+                    ownership === o
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted-foreground/5'
+                  }`}
+                >
+                  {o === 'PERSONAL' ? (
+                    <User className="w-3 h-3" />
+                  ) : (
+                    <Briefcase className="w-3 h-3" />
+                  )}
+                  {o === 'PERSONAL' ? 'Pessoal' : 'Empresarial'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              {/* Nome da Conta */}
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Nome da Conta
-                </label>
+          <div className="flex flex-col gap-3">
+            {/* Nome + Banco */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Nome da Conta</label>
                 <input
                   required
                   type="text"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  placeholder="Ex: Nubank, Itaú, Carteira"
-                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Nubank"
+                  className={inputCls}
                 />
               </div>
-
-              {/* Nome do Banco */}
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Nome do Banco / Instituição
-                </label>
+              <div>
+                <label className={labelCls}>Banco</label>
                 <input
                   type="text"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  placeholder="Ex: Nubank, Itaú, Bradesco"
-                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                  placeholder="Ex: Itaú"
+                  className={inputCls}
                 />
               </div>
+            </div>
 
-              {/* CPF ou CNPJ */}
-              {ownership === 'PERSONAL' ? (
-                <div className="col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                    CPF do Titular
-                  </label>
+            {/* Tipo + Cor */}
+            <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 48px' }}>
+              <div>
+                <label className={labelCls}>Tipo</label>
+                <TypeSelect value={type} onChange={setType} />
+              </div>
+              <div>
+                <label className={labelCls}>Cor</label>
+                <ColorPicker value={color} onChange={setColor} />
+              </div>
+            </div>
+
+            {/* CPF / CNPJ */}
+            <div>
+              <label className={labelCls}>{ownership === 'PERSONAL' ? 'CPF' : 'CNPJ'}</label>
+              <input
+                type="text"
+                value={ownership === 'PERSONAL' ? cpf : cnpj}
+                onChange={(e) =>
+                  ownership === 'PERSONAL' ? setCpf(e.target.value) : setCnpj(e.target.value)
+                }
+                placeholder={ownership === 'PERSONAL' ? '000.000.000-00' : '00.000.000/0000-00'}
+                maxLength={ownership === 'PERSONAL' ? 14 : 18}
+                className={inputCls}
+              />
+            </div>
+
+            {/* Métodos de pagamento */}
+            <div>
+              <label className={labelCls}>Métodos de Pagamento</label>
+              <div className="flex gap-2 p-1 bg-muted rounded-xl">
+                {(
+                  [
+                    {
+                      key: 'debit',
+                      label: 'Débito',
+                      active: hasDebit,
+                      toggle: () => setHasDebit((v) => !v),
+                    },
+                    {
+                      key: 'pix',
+                      label: 'PIX',
+                      active: hasPix,
+                      toggle: () => setHasPix((v) => !v),
+                    },
+                    {
+                      key: 'credit',
+                      label: 'Crédito',
+                      active: hasCredit,
+                      toggle: () => setHasCredit((v) => !v),
+                    },
+                  ] as const
+                ).map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={m.toggle}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-smooth ${
+                      m.active
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted-foreground/5'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {(hasDebit || hasPix) && (
+                <div className="mt-3">
+                  <label className={labelCls}>Saldo Atual</label>
                   <input
+                    required
                     type="text"
-                    value={cpf}
-                    onChange={(e) => setCpf(e.target.value)}
-                    placeholder="000.000.000-00"
-                    maxLength={14}
-                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-                  />
-                </div>
-              ) : (
-                <div className="col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                    CNPJ da Empresa
-                  </label>
-                  <input
-                    type="text"
-                    value={cnpj}
-                    onChange={(e) => setCnpj(e.target.value)}
-                    placeholder="00.000.000/0000-00"
-                    maxLength={18}
-                    className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
+                    inputMode="numeric"
+                    value={fmt(balance)}
+                    onChange={(e) => setBalance(e.target.value.replace(/\D/g, ''))}
+                    className={`${inputCls} font-bold`}
                   />
                 </div>
               )}
 
-              {/* Tipo de Conta */}
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Tipo de Conta
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {ACCOUNT_TYPES.map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setAccountType(t.value)}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-smooth text-left ${
-                        accountType === t.value
-                          ? 'bg-primary/10 border-primary text-primary'
-                          : 'bg-muted/20 border-border hover:border-muted-foreground/30'
-                      }`}
-                    >
-                      <t.icon className="w-4 h-4 shrink-0" />
-                      <span className="text-xs font-bold truncate">{t.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Saldo Inicial */}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Saldo Inicial
-                </label>
-                <input
-                  required
-                  type="text"
-                  inputMode="numeric"
-                  value={formattedBalance}
-                  onChange={handleBalanceChange}
-                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-                />
-              </div>
-
-              {/* Cor */}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Cor
-                </label>
-                <div className="relative">
-                  <Palette className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              {hasCredit && (
+                <div className="mt-3">
+                  <label className={labelCls}>Limite de Crédito</label>
                   <input
-                    type="color"
-                    value={accountColor}
-                    onChange={(e) => setAccountColor(e.target.value)}
-                    className="w-full h-[42px] bg-muted/40 border border-border rounded-xl pl-10 pr-4 py-1.5 cursor-pointer focus:ring-2 focus:ring-primary/20 outline-none"
+                    type="text"
+                    inputMode="numeric"
+                    value={fmt(creditLimit)}
+                    onChange={(e) => setCreditLimit(e.target.value.replace(/\D/g, ''))}
+                    className={`${inputCls} font-bold`}
                   />
                 </div>
-              </div>
-            </div>
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-medium">
-                {error}
-              </div>
-            )}
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-2xl border border-border font-bold text-sm hover:bg-muted transition-smooth"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-[2] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-60 transition-smooth"
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Conta'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form className="flex flex-col gap-5" onSubmit={submitCard}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Conta vinculada
-                </label>
-                <select
-                  required
-                  value={cardAccountId}
-                  onChange={(e) => setCardAccountId(e.target.value)}
-                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                >
-                  <option value="">Selecione a conta</option>
-                  {bankAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Nome do Cartão
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  placeholder="Ex: Nubank Gold, Itaú Débito"
-                  className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Tipo de Cartão
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {CARD_TYPES.map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setCardType(t.value as 'CREDIT' | 'DEBIT')}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-smooth text-left ${
-                        cardType === t.value
-                          ? 'bg-primary/10 border-primary text-primary'
-                          : 'bg-muted/20 border-border hover:border-muted-foreground/30'
-                      }`}
-                    >
-                      <t.icon className="w-4 h-4 shrink-0" />
-                      <span className="text-xs font-bold">{t.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {cardType === 'CREDIT' && (
-                <>
-                  <div className="col-span-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                      Limite de Crédito
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formattedCreditLimit}
-                      onChange={handleCreditLimitChange}
-                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                      Dia do Fechamento
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={closingDay}
-                      onChange={(e) => setClosingDay(e.target.value)}
-                      placeholder="Ex: 5"
-                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                      Dia do Vencimento
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={dueDay}
-                      onChange={(e) => setDueDay(e.target.value)}
-                      placeholder="Ex: 12"
-                      className="w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-smooth"
-                    />
-                  </div>
-                </>
               )}
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                  Cor
-                </label>
-                <div className="relative">
-                  <Palette className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <input
-                    type="color"
-                    value={cardColor}
-                    onChange={(e) => setCardColor(e.target.value)}
-                    className="w-full h-[42px] bg-muted/40 border border-border rounded-xl pl-10 pr-4 py-1.5 cursor-pointer focus:ring-2 focus:ring-primary/20 outline-none"
-                  />
-                </div>
-              </div>
             </div>
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-medium">
-                {error}
-              </div>
-            )}
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-2xl border border-border font-bold text-sm hover:bg-muted transition-smooth"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-[2] flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-60 transition-smooth"
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Cartão'}
-              </button>
+          </div>
+
+          {error && (
+            <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
+              {error}
             </div>
-          </form>
-        )}
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-border font-bold text-sm hover:bg-muted transition-smooth"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-60 transition-smooth"
+            >
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
