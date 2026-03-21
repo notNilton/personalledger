@@ -1177,11 +1177,8 @@ export class TransactionsService {
     const val = Number(normalized);
     if (Number.isNaN(val)) throw new Error(`Valor inválido: ${raw}`);
 
-    // Cartão de crédito (via account CREDIT_CARD ou via card.type=CREDIT)
-    if (
-      accountType === AccountType.CREDIT_CARD ||
-      cardType === CardType.CREDIT
-    ) {
+    // Cartão de crédito (via card.type=CREDIT)
+    if (cardType === CardType.CREDIT) {
       if (isCardPayment) return { amount: Math.abs(val), type: 'INCOME' };
       return { amount: Math.abs(val), type: 'EXPENSE' };
     }
