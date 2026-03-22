@@ -315,6 +315,16 @@ function TransactionsPage() {
               className="text-2xl font-bold font-display tracking-tight block text-emerald-500"
             />
           </div>
+          <div className="pl-6 border-l border-border">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+              Saldo
+            </p>
+            <PrivacyAmount
+              value={summaryIncome - summaryExpenses}
+              showSign
+              className={`text-2xl font-bold font-display tracking-tight block ${summaryIncome - summaryExpenses >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
